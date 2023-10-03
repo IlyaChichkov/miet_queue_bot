@@ -35,7 +35,6 @@ async def get_room_by_key(room_key):
 async def db_get_user_room(user_id):
     try:
         user = await get_user(user_id)
-        print(user)
         user_key, user_data = list(user.items())[0]
 
         if 'room' not in user_data:
@@ -47,7 +46,6 @@ async def db_get_user_room(user_id):
             return { 'error': 'User has no connected room' }
 
         room = await get_room_by_key(room_key)
-        print()
         if room:
             return { 'room': room }
         else:
@@ -78,7 +76,6 @@ async def db_create_room(user_id, password, room_name):
         # Check if room with the same name is already exist
         rooms_ref = db.reference('/rooms')
         room = rooms_ref.order_by_child('name').equal_to(room_name).get()
-        print(room)
         if room:
             # user_key, user_data = list(room.items())[0]
             return {'error': 'Room name duplicate', 'error_text': 'Такая комната уже есть.'}
@@ -88,17 +85,13 @@ async def db_create_room(user_id, password, room_name):
 
         users_ref = db.reference('/users')
         user = await get_user(user_id)
-        print('user', room)
         if user:
             user_key, user_data = list(user.items())[0]
-            print(user_key)
-            print(user_data)
 
             user_data['room'] = room_ref.key
 
             users_ref.child(user_key).set(user_data)
 
-        print('room', room)
         return { 'room': room }
     except Exception as e:
         error_message = f"Error creating room. Arguments: {user_id}, {password}, {room_name}. Error: {str(e)}"
@@ -115,7 +108,6 @@ async def get_user(user_id):
         return user
     else:
         # Create user
-        print('Create new user')
         new_user_ref = users_ref.push({
             'tg_id': user_id,
             'name': f'User_{generate_code(5)}',
@@ -149,10 +141,8 @@ async def get_user_room(user_id):
 
 async def leave_room(user_id):
     user_key, user_data = await get_user_data(user_id)
-    print(user_data)
     room_key = user_data['room']
     room = await get_room_by_key(room_key)
-    print(room)
 
     if 'users' in room and user_id in room['users']:
         room['users'].remove(user_id)
@@ -179,10 +169,8 @@ async def set_user_room(user_id, room_key):
 
 async def delete_room(user_id):
     user_key, user_data = await get_user_data(user_id)
-    print(user_data)
     room_key = user_data['room']
     room = await get_room_by_key(room_key)
-    print(room)
 
     if 'admins' in room:
         if user_id not in room['admins']:
@@ -202,7 +190,6 @@ async def delete_room(user_id):
 
     room_ref = db.reference(f'/rooms/{room_key}')
     room_ref.delete()
-
     return True
 
 
@@ -225,11 +212,9 @@ async def user_join_room(user_id, room_code, user_role):
 
         rooms_ref = db.reference('/rooms')
         room = rooms_ref.order_by_child(role_to_room_code[user_role]).equal_to(room_code).get()
-        print('user_join_room', room)
         if room:
             room_key, room_data = list(room.items())[0]
             user_key, user_data = list(user.items())[0]
-            print('user_join_room', room_data)
             user_data['room'] = room_key
             users_ref.child(user_key).set(user_data)
 
@@ -307,10 +292,6 @@ async def enter_queue(user_id):
 
     rooms_ref = db.reference('/rooms')
     rooms_ref.child(room_key).set(room)
-
-    #for user in room['users']:
-    #    await send_update_msg(user, 'Очередь обновилась')
-
     await update_queue_event.fire()
     return place
 
@@ -332,14 +313,12 @@ async def change_room_auto_queue(room_key):
     room = await get_room_by_key(room_key)
 
     if 'queue_on_join' in room:
-        print('Change auto queue', room['queue_on_join'])
-        room['queue_on_join'] = not room['queue_on_join']
-        print('Now: ', room['queue_on_join'])
+        new_val = not room['queue_on_join']
+        room['queue_on_join'] = new_val
+        logging.info(f'Auto queue join in room {room_key} set to {new_val}')
 
         rooms_ref = db.reference('/rooms')
         rooms_ref.child(room_key).set(room)
-        print('Save')
-
 
 
 async def change_room_name(user_id, new_name):
@@ -364,9 +343,7 @@ async def change_user_name(user_id, new_name):
 
 
 def default_name_regular(input_text):
-    print(input_text)
     pattern = re.compile(r"User_[0-9]+", re.IGNORECASE)
-    print(pattern.match(input_text))
     return pattern.match(input_text)
 
 
