@@ -22,7 +22,7 @@ async def get_admin_welcome_kb(user_id):
             text="Профиль"
         )
     )
-    return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+    return builder.as_markup(resize_keyboard=True)
 
 async def get_moderator_welcome_kb(user_id):
     builder = ReplyKeyboardBuilder()
