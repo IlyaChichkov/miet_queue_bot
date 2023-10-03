@@ -108,12 +108,14 @@ async def get_user(user_id):
         return user
     else:
         # Create user
-        new_user_ref = users_ref.push({
+        new_user_dict = {
             'tg_id': user_id,
             'name': f'User_{generate_code(5)}',
             'room': "",
             'data': {}
-        })
+        }
+        logging.info(f'New user was created: {new_user_dict}')
+        new_user_ref = users_ref.push(new_user_dict)
         result = OrderedDict()
         result[new_user_ref.key] = db.reference(f'/users/{new_user_ref.key}').get()
         return result
@@ -188,6 +190,7 @@ async def delete_room(user_id):
         for user in room['admins']:
             await set_user_room(user, None)
 
+    logging.info(f'Deleting room, id: {room_key}, name: {room["name"]}')
     room_ref = db.reference(f'/rooms/{room_key}')
     room_ref.delete()
     return True
