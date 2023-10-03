@@ -65,12 +65,17 @@ async def queue_pop_call(message: types.Message, state: FSMContext):
 
     log_user_info(user_message.from_user.id, f'User try to queue.pop')
 
+    current_state = await state.get_state()
+    print(current_state)
+    print(RoomVisiterState.ROOM_WELCOME_SCREEN)
+    print(current_state is RoomVisiterState.ROOM_WELCOME_SCREEN)
     pop_user_id = await queue_pop(user_id)
     if pop_user_id is None:
         logging.info(f'Try to pop empty queue.')
         await user_message.answer(get_noqueue_members_mesg()['mesg'], parse_mode="HTML")
         return
 
+    await state.set_state(RoomVisiterState.ROOM_ASSIGN_SCREEN)
     await delete_cache_messages(user_id)
     await assigned_screen(user_message, pop_user_id)
     await user_assigned_event.fire(user_id, pop_user_id)
@@ -146,6 +151,19 @@ async def delete_cache_messages(user_id):
     return False
 
 
+
+@router.message(F.text.lower() == "посмотреть очередь", RoomVisiterState.ROOM_ASSIGN_SCREEN)
+async def exit_assigned(message: types.Message, state: FSMContext):
+    await state.set_state(RoomVisiterState.ROOM_QUEUE_SCREEN)
+    await queue_list_state(message)
+
+
+@router.message(F.text.lower() == "в главное меню", RoomVisiterState.ROOM_ASSIGN_SCREEN)
+async def exit_assigned(message: types.Message, state: FSMContext):
+    await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
+    await welcome_room_state(message)
+
+
 @router.message(RoomVisiterState.ROOM_ASSIGN_SCREEN)
 async def exit_assigned(message: types.Message, state: FSMContext):
     await state.set_state(RoomVisiterState.ROOM_QUEUE_SCREEN)
@@ -163,7 +181,8 @@ async def assigned_screen(message: types.Message, pop_user_id):
     builder = ReplyKeyboardBuilder()
 
     builder.row(
-        types.KeyboardButton(text="Назад"),
+        types.KeyboardButton(text="Посмотреть очередь"),
+        types.KeyboardButton(text="В главное меню"),
     )
 
     kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)

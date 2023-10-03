@@ -19,7 +19,6 @@ router = Router()
 @router.message(IsAdmin(), F.text.lower() == "принять первого в очереди", RoomVisiterState.ROOM_WELCOME_SCREEN)
 @router.message(IsModerator(), F.text.lower() == "принять первого в очереди", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def room_settings_state(message: types.Message, state: FSMContext):
-    await state.set_state(RoomVisiterState.ROOM_QUEUE_SCREEN)
     await queue_pop_call(message, state)
 
 
