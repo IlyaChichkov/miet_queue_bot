@@ -82,6 +82,7 @@ async def exit_queue_list(message: types.Message, state: FSMContext):
     '''
     user_id = message.from_user.id
     user_message: types.Message = get_user_cache_message(user_id)
+    await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
     await welcome_room_state(user_message)
     await delete_cache_messages(user_id)
 
