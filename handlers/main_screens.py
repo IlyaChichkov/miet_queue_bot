@@ -2,7 +2,7 @@ import enum
 
 from aiogram import Router, F, types
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message, ReplyKeyboardRemove, URLInputFile
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from firebase import db_get_user_room
@@ -59,5 +59,8 @@ async def start_command(message: types.Message, state: FSMContext):
         resize_keyboard=True,
         input_field_placeholder=""
     )
-    await message.answer("Добро пожаловать в QueueBot! Пожалуйста выберите действие:", reply_markup=keyboard)
+    start_image = URLInputFile(
+        "https://i.postimg.cc/MpCGsd4H/1.png"
+    )
+    await message.answer_photo(start_image, "Добро пожаловать в QueueBot! Пожалуйста выберите действие:", reply_markup=keyboard)
     await state.set_state(WelcomeState.WELCOME_SCREEN)
