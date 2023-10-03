@@ -14,7 +14,7 @@ async def get_settings_kb(user_id):
 
     builder.row(
         types.KeyboardButton(text=f"Автоочередь ({await get_room_option(user_id, 'queue_on_join')})"),
-        types.KeyboardButton(text="Изменить имя")
+        types.KeyboardButton(text="Изменить название")
     )
 
     builder.row(
@@ -37,10 +37,10 @@ async def room_settings_state(message: types.Message, state: FSMContext):
     await message.answer("Автоочередь - вкл/выкл", reply_markup=kb)
 
 
-@router.message(F.text.lower() == "изменить имя", RoomVisiterState.ROOM_SETTINGS_SCREEN)
+@router.message(F.text.lower() == "изменить название", RoomVisiterState.ROOM_SETTINGS_SCREEN)
 async def room_settings_state(message: types.Message, state: FSMContext):
     await state.set_state(RoomVisiterState.CHANGE_ROOM_NAME)
-    await message.answer("Введите новое имя комнаты")
+    await message.answer("Введите новое название комнаты")
 
 
 @router.message(F.text.lower() == "назад", RoomVisiterState.ROOM_SETTINGS_SCREEN)
