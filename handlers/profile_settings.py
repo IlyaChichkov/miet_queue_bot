@@ -2,6 +2,7 @@ from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
+from bot_logging import log_user_info
 from firebase import change_user_name, get_user_name
 from handlers.room_actions import RoomVisiterState
 from handlers.room_welcome import welcome_room_state
@@ -51,6 +52,7 @@ async def profile_settings(message: types.Message):
 @router.message(RoomVisiterState.CHANGE_PROFILE_NAME)
 async def change_user_name_state(message: types.Message, state: FSMContext):
     await change_user_name(message.from_user.id, message.text)
+    log_user_info(message.from_user.id, f'Changed name to: {message.text}')
     await message.answer(f"Имя успешно изменено на {message.text}")
     await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
     await welcome_room_state(message)
