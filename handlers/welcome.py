@@ -46,11 +46,11 @@ async def create_room(message: types.Message, state: FSMContext):
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
             await welcome_room_state(message)
         else:
-            await message.answer(f"Не получилось создать комнату. {result['error_text']}")
+            await message.answer(f"Не получилось создать комнату. Ошибка: {result['error_text']}")
             await state.set_state(WelcomeState.WELCOME_SCREEN)
     else:
-        print('Wrong create room pattern')
-        await message.answer("Введите для создания комнаты (пароль#имя_комнаты):")
+        await message.answer("Не получилось создать комнату.")
+        await state.set_state(WelcomeState.WELCOME_SCREEN)
 
 
 @router.message(F.text, WelcomeState.JOIN_ROOM_SCREEN)
