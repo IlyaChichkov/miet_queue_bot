@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
+from bot_logging import log_user_info
 from firebase import change_room_auto_queue, get_user_room, get_room_option, change_room_name
 from handlers.room_actions import RoomVisiterState
 from handlers.room_welcome import welcome_room_state
@@ -51,7 +52,9 @@ async def room_settings_state(message: types.Message, state: FSMContext):
 
 @router.message(RoomVisiterState.ROOM_SETTINGS_SCREEN)
 async def room_settings(message: types.Message):
-    kb = await get_settings_kb(message.from_user.id)
+    user_id = message.from_user.id
+    log_user_info(user_id, f'Entered room settings screen')
+    kb = await get_settings_kb(user_id)
     await message.answer("Настройка комнаты:", reply_markup=kb)
 
 
