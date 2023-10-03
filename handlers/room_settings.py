@@ -58,4 +58,5 @@ async def room_settings(message: types.Message):
 @router.message(RoomVisiterState.CHANGE_ROOM_NAME)
 async def change_room_name_state(message: types.Message, state: FSMContext):
     await change_room_name(message.from_user.id, message.text)
+    await message.answer(f"Название комнаты успешно изменено на {message.text}")
     await state.set_state(RoomVisiterState.ROOM_SETTINGS_SCREEN)
