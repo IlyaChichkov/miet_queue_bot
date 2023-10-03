@@ -7,7 +7,7 @@ from events.queue_events import update_queue_event, user_assigned_event
 from firebase import queue_pop
 from handlers.room_welcome import welcome_room_state
 from message_forms.assign_form import get_assigned_mesg
-from message_forms.queue_form import get_queue_list_mesg, get_queue_main
+from message_forms.queue_form import get_queue_list_mesg, get_queue_main, get_noqueue_members_mesg
 from states.room import RoomVisiterState
 from bot import bot
 
@@ -67,6 +67,7 @@ async def queue_pop_call(message: types.Message, state: FSMContext):
     pop_user_id = await queue_pop(user_id)
     print('pop_user_id', pop_user_id)
     if pop_user_id is None:
+        await user_message.answer(get_noqueue_members_mesg()['mesg'], parse_mode="HTML")
         return
 
     await delete_cache_messages(user_id)
