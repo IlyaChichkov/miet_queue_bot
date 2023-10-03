@@ -24,13 +24,13 @@ def create_room_input_reg(input_text):
 
 @router.message(F.text.lower() == "создать комнату" or Command("create"), WelcomeState.WELCOME_SCREEN)
 async def create_room_state(message: types.Message, state: FSMContext):
-    await message.answer("Введите для создания комнаты (пароль#имя_комнаты):")
+    await message.answer("Введите пароль для создания комнаты (пароль#имя_комнаты):")
     await state.set_state(WelcomeState.CREATE_ROOM_SCREEN)
 
 
 @router.message(F.text.lower() == "присоединиться к комнате", WelcomeState.WELCOME_SCREEN)
 async def join_room_state(message: types.Message, state: FSMContext):
-    await message.answer("Введите для присоединения к комнате:")
+    await message.answer("Введите код присоединения к комнате:")
     await state.set_state(WelcomeState.JOIN_ROOM_SCREEN)
 
 
