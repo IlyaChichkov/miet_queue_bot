@@ -6,7 +6,7 @@ from firebase_admin import credentials
 from firebase_admin import db
 import logging
 
-from events.queue_events import update_queue_event
+from events.queue_events import update_queue_event, queue_enable_state_event
 from utils import generate_password, generate_code
 
 cred = credentials.Certificate("firebase.config.json")
@@ -20,6 +20,7 @@ def get_new_room(user_id, room_name):
         'mod_password': generate_password(7),
         'join_code': generate_code(4),
         'queue_on_join': True,
+        'queue_enabled': False,
         'admins': [ user_id ],
         'moderators': None,
         'users': None,
@@ -310,6 +311,54 @@ async def is_user_in_queue(user_id):
     if 'queue' in room and user_id in room['queue']:
         return True
     return False
+
+
+async def get_room_queue_enabled_by_userid(user_id) -> bool:
+    room_key = await get_user_room(user_id)
+    return await get_room_queue_enabled(room_key)
+
+
+async def get_room_queue_enabled(room_key) -> bool:
+    room = await get_room_by_key(room_key)
+
+    if 'queue_enabled' in room:
+        return room['queue_enabled']
+
+
+async def get_user_role(user_id):
+    room_key = await get_user_room(user_id)
+    room = await get_room_by_key(room_key)
+    user_role = None
+    if 'users' in room and user_id in room['users']:
+        user_role = 'users'
+    if 'moderators' in room and user_id in room['moderators']:
+        user_role = 'moderators'
+    if 'admins' in room and user_id in room['admins']:
+        user_role = 'admins'
+    logging.info(f'USER_{user_id}: Get user role: {user_role}')
+    return user_role
+
+
+async def switch_room_queue_enabled(user_id):
+    room_key = await get_user_room(user_id)
+    room = await get_room_by_key(room_key)
+
+    if 'queue_enabled' in room:
+        new_val: bool = not room['queue_enabled']
+        room['queue_enabled'] = new_val
+        queue_state = {
+            True: "enabled",
+            False: "disabled"
+        }
+        logging.info(f'Queue in room {room_key} is {queue_state[new_val]}')
+
+        # Записываем состояние
+        rooms_ref = db.reference('/rooms')
+        rooms_ref.child(room_key).set(room)
+        # Удаляем очередь
+        queue_ref = db.reference(f'/rooms/{room_key}/queue')
+        queue_ref.delete()
+        await queue_enable_state_event.fire(room_key, new_val)
 
 
 async def change_room_auto_queue(room_key):
