@@ -33,7 +33,7 @@ async def room_settings_state(message: types.Message, state: FSMContext):
 async def room_settings_state(message: types.Message, state: FSMContext):
     await state.set_state(RoomVisiterState.CHANGE_PROFILE_NAME)
     user_name = await get_user_name(message.from_user.id)
-    await message.answer(f"Текущее имя: {user_name}\nВведите новое имя:")
+    await message.answer(f"✏️ Текущее имя: {user_name}\nВведите новое имя (Имя Фамилия №ПК):")
 
 
 @router.message(F.text.lower() == "назад", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
