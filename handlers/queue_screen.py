@@ -59,6 +59,14 @@ async def exit_queue_list_back(message: types.Message, state: FSMContext):
     await exit_queue_list(message, state)
 
 
+@router.message(F.text.lower() == "принять первого", RoomVisiterState.ROOM_QUEUE_SCREEN)
+async def queue_pop_mesg(message: types.Message, state: FSMContext):
+    '''
+    Callback для принятия первого человека в очереди
+    '''
+    await queue_pop_handler(message, state)
+
+
 @router.callback_query(F.data == "queue_back", RoomVisiterState.ROOM_QUEUE_SCREEN)
 async def exit_queue_list_call(message: types.Message, state: FSMContext):
     await exit_queue_list(message, state)
@@ -69,10 +77,16 @@ async def queue_pop_call(message: types.Message, state: FSMContext):
     '''
     Callback для принятия первого человека в очереди
     '''
+    await queue_pop_handler(message, state)
+
+async def queue_pop_handler(message: types.Message, state: FSMContext):
+    '''
+    Обработка принятия первого человека в очереди
+    '''
     user_id = message.from_user.id
 
     # user_name = await get_user_name(pop_user_id)
-    #await bot.send_message(user_id, f'Взял пользователя: <b>{user_name}</b>',
+    # await bot.send_message(user_id, f'Взял пользователя: <b>{user_name}</b>',
     #                       parse_mode="HTML")
 
     user_message = get_user_cache_message(user_id)
@@ -127,6 +141,8 @@ async def queue_list_send(message: types.Message, user_id = None):
     main_form = None
     user_role = await get_user_role(user_id)
 
+
+
     if user_role == 'admins':
 
         builder = ReplyKeyboardBuilder()
@@ -139,17 +155,25 @@ async def queue_list_send(message: types.Message, user_id = None):
         }
 
         builder.row(types.KeyboardButton(text=f"{queue_state_to_msg[queue_state]} очередь"))
+        builder.row(types.KeyboardButton(text=f"Принять первого"))
         builder.row(types.KeyboardButton(text="Назад"))
 
         mf_kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
         main_form = await get_queue_main_admin()
     else:
         main_form = await get_queue_main()
-        mf_kb = main_form['kb']
+
+        builder = ReplyKeyboardBuilder()
+
+        builder.row(types.KeyboardButton(text=f"Принять первого"))
+        builder.row(types.KeyboardButton(text="Назад"))
+
+        mf_kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
     message_form = await get_queue_list_mesg(user_id)
     title_message = await message.answer(main_form['mesg'], reply_markup=mf_kb)
-    queue_message = await message.answer(message_form['mesg'], reply_markup=message_form['kb'])
+    queue_message = await message.answer(message_form['mesg'])
+    # , reply_markup=message_form['kb']
 
     if not(await update_cache_messages(user_id, 'title', title_message) and
         await update_cache_messages(user_id, 'queue', queue_message)):
