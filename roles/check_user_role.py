@@ -1,15 +1,10 @@
 from aiogram.types import Message
 from aiogram.filters import BaseFilter
-
-from firebase import get_user_room, get_room_by_key
+from roles.role_cache import get_user_role
 
 
 async def check_role(user_id, role):
-    room_key = await get_user_room(user_id)
-    room = await get_room_by_key(room_key)
-    if role in room and user_id in room[role]:
-        return True
-    return False
+    return role == await get_user_role(user_id)
 
 
 class IsModerator(BaseFilter):
