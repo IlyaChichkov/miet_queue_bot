@@ -65,8 +65,11 @@ async def join_room(message: types.Message, state: FSMContext):
 
         if 'room' in joined_room:
             room_name = joined_room['room']['name']
+            # Проверка, включена ли автоочередь
             if 'queue_on_join' in joined_room['room'] and joined_room['room']['queue_on_join'] == True:
-                await enter_queue(message.from_user.id)
+                # Проверка, включена ли очередь
+                if 'queue_enabled' in joined_room['room'] and joined_room['room']['queue_enabled'] == True:
+                    await enter_queue(message.from_user.id)
 
             log_user_info(message.from_user.id, f'Joined room, name: {room_name} as user')
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
