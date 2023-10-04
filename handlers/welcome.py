@@ -62,8 +62,9 @@ async def join_room(message: types.Message, state: FSMContext):
 
     if check_user_code:
         joined_room = await user_join_room(message.from_user.id, message.text, 'user')
-        room_name = joined_room['room']['name']
+
         if 'room' in joined_room:
+            room_name = joined_room['room']['name']
             if 'queue_on_join' in joined_room['room'] and joined_room['room']['queue_on_join'] == True:
                 await enter_queue(message.from_user.id)
 
@@ -75,8 +76,9 @@ async def join_room(message: types.Message, state: FSMContext):
             await state.set_state(WelcomeState.WELCOME_SCREEN)
     elif check_mod_code:
         joined_room = await user_join_room(message.from_user.id, message.text, 'moderator')
-        room_name = joined_room['room']['name']
+
         if 'room' in joined_room:
+            room_name = joined_room['room']['name']
             log_user_info(message.from_user.id, f'Joined room, name: {room_name} as moderator')
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
             await welcome_room_state(message)
