@@ -5,6 +5,7 @@ from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
+from bot_logging import log_user_info
 from firebase import db_get_user_room, delete_room, leave_room, enter_queue, exit_queue
 from handlers.main_screens import start_command
 from handlers.queue_screen import queue_list_state, queue_pop_call
@@ -19,7 +20,6 @@ router = Router()
 @router.message(IsAdmin(), F.text.lower() == "принять первого в очереди", RoomVisiterState.ROOM_WELCOME_SCREEN)
 @router.message(IsModerator(), F.text.lower() == "принять первого в очереди", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def room_settings_state(message: types.Message, state: FSMContext):
-    await state.set_state(RoomVisiterState.ROOM_QUEUE_SCREEN)
     await queue_pop_call(message, state)
 
 
@@ -32,6 +32,7 @@ async def room_settings_state(message: types.Message, state: FSMContext):
 
 @router.message(IsAdmin(), F.text.lower() == "удалить комнату", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def room_settings_state(message: types.Message, state: FSMContext):
+    log_user_info(message.from_user.id, f'Deleted room.')
     if await delete_room(message.from_user.id):
         await start_command(message, state)
 

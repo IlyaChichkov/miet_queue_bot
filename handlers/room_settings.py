@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
+from bot_logging import log_user_info
 from firebase import change_room_auto_queue, get_user_room, get_room_option, change_room_name
 from handlers.room_actions import RoomVisiterState
 from handlers.room_welcome import welcome_room_state
@@ -14,7 +15,7 @@ async def get_settings_kb(user_id):
 
     builder.row(
         types.KeyboardButton(text=f"Автоочередь ({await get_room_option(user_id, 'queue_on_join')})"),
-        types.KeyboardButton(text="Изменить имя")
+        types.KeyboardButton(text="Изменить название")
     )
 
     builder.row(
@@ -37,10 +38,10 @@ async def room_settings_state(message: types.Message, state: FSMContext):
     await message.answer("Автоочередь - вкл/выкл", reply_markup=kb)
 
 
-@router.message(F.text.lower() == "изменить имя", RoomVisiterState.ROOM_SETTINGS_SCREEN)
+@router.message(F.text.lower() == "изменить название", RoomVisiterState.ROOM_SETTINGS_SCREEN)
 async def room_settings_state(message: types.Message, state: FSMContext):
     await state.set_state(RoomVisiterState.CHANGE_ROOM_NAME)
-    await message.answer("Введите новое имя комнаты")
+    await message.answer("✏️ Введите новое название комнаты")
 
 
 @router.message(F.text.lower() == "назад", RoomVisiterState.ROOM_SETTINGS_SCREEN)
@@ -51,11 +52,14 @@ async def room_settings_state(message: types.Message, state: FSMContext):
 
 @router.message(RoomVisiterState.ROOM_SETTINGS_SCREEN)
 async def room_settings(message: types.Message):
-    kb = await get_settings_kb(message.from_user.id)
-    await message.answer("Настройка комнаты:", reply_markup=kb)
+    user_id = message.from_user.id
+    log_user_info(user_id, f'Entered room settings screen')
+    kb = await get_settings_kb(user_id)
+    await message.answer("⚙️ Настройка комнаты:", reply_markup=kb)
 
 
 @router.message(RoomVisiterState.CHANGE_ROOM_NAME)
 async def change_room_name_state(message: types.Message, state: FSMContext):
     await change_room_name(message.from_user.id, message.text)
+    await message.answer(f"✅ Название комнаты успешно изменено на {message.text}")
     await state.set_state(RoomVisiterState.ROOM_SETTINGS_SCREEN)

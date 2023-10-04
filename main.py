@@ -2,6 +2,9 @@ import asyncio
 from dotenv import load_dotenv
 from bot import dp, bot
 from handlers import welcome, room_actions, assign_screen, profile_settings, room_settings, room_welcome, main_screens, queue_screen
+import events.queue_state_handler
+import events.user_join_handler
+import events.user_left_handler
 import bot_logging
 load_dotenv()
 

@@ -1,6 +1,8 @@
 from aiogram import Router, F, types
 
-from firebase import db_get_user_room, is_user_name_default
+from bot import bot
+from events.queue_events import queue_enable_state_event
+from firebase import db_get_user_room, is_user_name_default, get_room_by_key, get_user_name
 from message_forms.room_forms import get_welcome_message
 from states.room import RoomVisiterState
 
@@ -13,10 +15,11 @@ router = Router()
 async def welcome_room(message: types.Message):
     user_id = message.from_user.id
     room = await db_get_user_room(user_id)
+    user_name = await get_user_name(user_id)
 
     if 'room' in room:
         if await is_user_name_default(user_id):
-            await message.answer('Ваше имя соответствует стандартному, пожалуйста поменяйте его в настройках профиля')
+            await message.answer(f'ℹ️ Ваше имя соответствует стандартному: «<b>{user_name}</b>». Пожалуйста поменяйте его в настройках профиля (Имя Фамилия №ПК)', parse_mode="HTML")
         mesg = await get_welcome_message(user_id, room)
         await message.answer(mesg['mesg_text'], parse_mode="HTML", reply_markup=mesg['keyboard'])
     else:

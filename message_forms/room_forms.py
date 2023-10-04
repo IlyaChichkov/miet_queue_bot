@@ -24,13 +24,13 @@ async def get_welcome_message(user_id, room):
     moderator_code = room['room']['mod_password']
     join_code = room['room']['join_code']
     role_to_welcome_text = {
-        UserRoles.Admin:  f"Вы находитесь в меню комнаты «<b>{room_name}</b>»\n"
-                          f"Код для присоединения модераторов:  <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
-                          f"Код для присоединения студентов: <code>{join_code}</code>",
-        UserRoles.Moderator:  f"Вы находитесь в меню комнаты «<b>{room_name}</b>»\n"
-                              f"Код для присоединения модераторов:  <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
-                              f"Код для присоединения студентов: <code>{join_code}</code>",
-        UserRoles.User:  f'Вы находитесь в меню комнаты «<b>{room_name}</b>»\n'
+        UserRoles.Admin:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n"
+                          f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
+                          f"Студентов: <code>{join_code}</code>",
+        UserRoles.Moderator:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n"
+                              f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
+                              f"Студентов: <code>{join_code}</code>",
+        UserRoles.User:  f'📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n'
     }
     mesg_text = role_to_welcome_text.get(role, 'None')
     return { 'mesg_text': mesg_text, 'keyboard': kb }
