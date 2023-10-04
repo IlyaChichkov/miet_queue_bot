@@ -23,4 +23,7 @@ async def cache_user_role(user_id, role):
 
 
 async def delete_user_role_cache(user_id):
-    users_role_cache.pop(user_id)
+    if user_id in users_role_cache:
+        users_role_cache.pop(user_id)
+    else:
+        logging.warning(f'USER_{user_id}: Tried to delete role cache, but it\'s empty')
