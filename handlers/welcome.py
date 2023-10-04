@@ -75,7 +75,7 @@ async def join_room(message: types.Message, state: FSMContext):
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
             await welcome_room_state(message)
         else:
-            await message.answer(f"Ошибка подключения к комнате. {joined_room['error']}")
+            await message.answer(f"Ошибка подключения к комнате. {joined_room['error_text']}")
             await state.set_state(WelcomeState.WELCOME_SCREEN)
     elif check_mod_code:
         joined_room = await user_join_room(message.from_user.id, message.text, 'moderator')
@@ -86,7 +86,7 @@ async def join_room(message: types.Message, state: FSMContext):
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
             await welcome_room_state(message)
         else:
-            await message.answer(f"Ошибка подключения к комнате. {joined_room['error']}")
+            await message.answer(f"Ошибка подключения к комнате. {joined_room['error_text']}")
             await state.set_state(WelcomeState.WELCOME_SCREEN)
     else:
         await message.answer("Неверный код подключения")
