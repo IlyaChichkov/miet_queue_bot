@@ -145,6 +145,7 @@ async def queue_list_send(message: types.Message, user_id = None):
         main_form = await get_queue_main_admin()
     else:
         main_form = await get_queue_main()
+        mf_kb = main_form['kb']
 
     message_form = await get_queue_list_mesg(user_id)
     title_message = await message.answer(main_form['mesg'], reply_markup=mf_kb)
