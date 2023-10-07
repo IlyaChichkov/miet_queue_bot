@@ -18,13 +18,14 @@ async def get_admin_queue_kb():
 
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
-
-def get_queue_kb():
+def get_queue_kb(is_queue_empty):
     builder = InlineKeyboardBuilder()
 
-    builder.row(
-        types.InlineKeyboardButton(text="Принять первого",
-                                   callback_data="queue_pop")
-    )
+    if not is_queue_empty:
+        builder.row(
+            types.InlineKeyboardButton(text="Принять первого",
+                                       callback_data="queue_pop")
+        )
+
 
     return builder.as_markup()

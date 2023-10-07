@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import Router, F, types
 
 from bot import bot
@@ -20,7 +22,7 @@ async def welcome_room(message: types.Message):
     if 'room' in room:
         if await is_user_name_default(user_id):
             await message.answer(f'ℹ️ Ваше имя соответствует стандартному: «<b>{user_name}</b>». Пожалуйста поменяйте его в настройках профиля (Имя Фамилия №ПК)', parse_mode="HTML")
-        mesg = await get_welcome_message(user_id, room)
+        mesg = await get_welcome_message(user_id, room['room'])
         await message.answer(mesg['mesg_text'], parse_mode="HTML", reply_markup=mesg['keyboard'])
     else:
         await message.answer(f"Произошла ошибка при присоединении к комнате.\n"

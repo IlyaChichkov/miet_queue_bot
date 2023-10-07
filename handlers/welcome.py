@@ -8,6 +8,8 @@ from firebase import db_create_room, user_join_room, enter_queue
 import re
 
 from handlers.room_welcome import welcome_room_state
+from keyboards.welcome_keyboard import get_welcome_kb
+from models.room import Room
 from states.room import RoomVisiterState
 
 router = Router()
@@ -49,7 +51,8 @@ async def create_room(message: types.Message, state: FSMContext):
             await message.answer(f"Не получилось создать комнату. Ошибка: {result['error_text']}")
             await state.set_state(WelcomeState.WELCOME_SCREEN)
     else:
-        await message.answer("Не получилось создать комнату.")
+        keyboard = get_welcome_kb()
+        await message.answer("Не получилось создать комнату.", reply_markup=keyboard)
         await state.set_state(WelcomeState.WELCOME_SCREEN)
 
 
@@ -64,12 +67,10 @@ async def join_room(message: types.Message, state: FSMContext):
         joined_room = await user_join_room(message.from_user.id, message.text, 'user')
 
         if 'room' in joined_room:
-            room_name = joined_room['room']['name']
-            # Проверка, включена ли автоочередь
-            if 'queue_on_join' in joined_room['room'] and joined_room['room']['queue_on_join'] == True:
-                # Проверка, включена ли очередь
-                if 'queue_enabled' in joined_room['room'] and joined_room['room']['queue_enabled'] == True:
-                    await enter_queue(message.from_user.id)
+            room: Room = joined_room['room']
+            room_name = room.name
+            if room.is_queue_on_join and room.is_queue_enabled:
+                await enter_queue(message.from_user.id)
 
             log_user_info(message.from_user.id, f'Joined room, name: {room_name} as user')
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
@@ -81,7 +82,9 @@ async def join_room(message: types.Message, state: FSMContext):
         joined_room = await user_join_room(message.from_user.id, message.text, 'moderator')
 
         if 'room' in joined_room:
-            room_name = joined_room['room']['name']
+            room: Room = joined_room['room']
+            room_name = room.name
+
             log_user_info(message.from_user.id, f'Joined room, name: {room_name} as moderator')
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
             await welcome_room_state(message)
@@ -89,5 +92,6 @@ async def join_room(message: types.Message, state: FSMContext):
             await message.answer(f"Ошибка подключения к комнате. {joined_room['error_text']}")
             await state.set_state(WelcomeState.WELCOME_SCREEN)
     else:
-        await message.answer("Неверный код подключения")
+        keyboard = get_welcome_kb()
+        await message.answer("Неверный код подключения.", reply_markup=keyboard)
         await state.set_state(WelcomeState.WELCOME_SCREEN)

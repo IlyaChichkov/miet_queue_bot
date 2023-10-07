@@ -3,7 +3,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 from bot_logging import log_user_info
-from firebase import change_user_name, get_user_name
+from firebase import change_user_name, get_user_name, db_get_user_room
+from handlers.main_screens import start_command
 from handlers.room_actions import RoomVisiterState
 from handlers.room_welcome import welcome_room_state
 
@@ -23,7 +24,7 @@ async def get_settings_kb(user_id):
     )
     return builder.as_markup(resize_keyboard=True)
 
-@router.message(F.text.lower() == "профиль", RoomVisiterState.ROOM_WELCOME_SCREEN)
+@router.message(F.text.lower() == "профиль")
 async def room_settings_state(message: types.Message, state: FSMContext):
     await state.set_state(RoomVisiterState.PROFILE_SETTINGS_SCREEN)
     await profile_settings(message)
@@ -38,8 +39,8 @@ async def room_settings_state(message: types.Message, state: FSMContext):
 
 @router.message(F.text.lower() == "назад", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
 async def room_settings_state(message: types.Message, state: FSMContext):
-    await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
-    await welcome_room_state(message)
+    await state.set_state(None)
+    await start_command(message, state)
 
 
 @router.message(RoomVisiterState.PROFILE_SETTINGS_SCREEN)
@@ -54,5 +55,4 @@ async def change_user_name_state(message: types.Message, state: FSMContext):
     await change_user_name(message.from_user.id, message.text)
     log_user_info(message.from_user.id, f'Changed name to: {message.text}')
     await message.answer(f"✅ Имя успешно изменено на {message.text}")
-    await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
-    await welcome_room_state(message)
+    await room_settings_state(message, state)
