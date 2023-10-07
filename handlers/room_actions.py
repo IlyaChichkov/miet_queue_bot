@@ -16,7 +16,7 @@ router = Router()
 @router.message(IsModerator(), F.text.lower() == "список пользователей", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def room_users_list(message: types.Message, state: FSMContext):
     form_message, form_kb = await get_users_list_form(message.from_user.id)
-    await message.answer(form_message, parse_mode="HTML", reply_markup=form_kb)
+    await message.answer(form_message, parse_mode="HTML")
 
 
 @router.message(IsAdmin(), F.text.lower() == "принять первого в очереди", RoomVisiterState.ROOM_WELCOME_SCREEN)
