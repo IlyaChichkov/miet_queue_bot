@@ -5,11 +5,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 from bot_logging import log_user_info
-from events.queue_events import update_queue_event, user_assigned_event
+from events.queue_events import update_queue_event, user_assigned_event, username_changed_event
 from firebase import queue_pop, get_user_role, get_room_queue_enabled_by_userid, switch_room_queue_enabled
 from handlers.room_welcome import welcome_room_state
 from message_forms.assign_form import get_assigned_mesg
-from message_forms.queue_form import get_queue_list_mesg, get_queue_main, get_noqueue_members_mesg, get_queue_main_admin
+from message_forms.queue_form import get_queue_list_mesg, get_queue_main, get_noqueue_members_mesg, \
+    get_queue_main_admin, get_queue_main_form
 from roles.check_user_role import IsAdmin
 from states.room import RoomVisiterState
 from bot import bot
@@ -24,30 +25,34 @@ async def update_list_for_users():
     '''
     logging.info(f'Update queue list for all viewing users.')
     current_dict = dict(queue_view_update)
-    for key, mesg in current_dict.items():
+    for user_id, mesg in current_dict.items():
         message: types.Message = mesg
         try:
             queue_message = message['queue']
-            message_form = await get_queue_list_mesg(key)
-            await bot.edit_message_text(message_form['mesg'] ,chat_id=queue_message.chat.id,
-                                     message_id=queue_message.message_id, reply_markup=message_form['kb'])
+            form_message, form_kb = await get_queue_list_mesg(user_id)
+            await bot.edit_message_text(form_message, chat_id=queue_message.chat.id,
+                                        message_id=queue_message.message_id, reply_markup=form_kb)
+            #queue_message = message['queue']
+            #main_form, mf_kb = await get_queue_main_form(user_id)
+            #await bot.edit_message_text(main_form ,chat_id=queue_message.chat.id, message_id=queue_message.message_id, reply_markup=mf_kb)
         except Exception as e:
             logging.error(str(e))
-            await delete_cache_messages(key)
-            await queue_list_send(message['user_msg'], key)
+            await delete_cache_messages(user_id)
+            await queue_list_send(message['user_msg'], user_id)
 
 
+username_changed_event.add_handler(update_list_for_users)
 update_queue_event.add_handler(update_list_for_users)
 
 
-@router.message(IsAdmin(), F.text.lower() == "выключить очередь", RoomVisiterState.ROOM_QUEUE_SCREEN)
+@router.message(IsAdmin(), F.text.lower() == "выключить очередь")
 async def change_queue_enabled(message: types.Message, state: FSMContext):
     await switch_room_queue_enabled(message.from_user.id)
     await message.answer("⛔ Вы выключили очередь", parse_mode="HTML")
     await queue_list_send(message)
 
 
-@router.message(IsAdmin(), F.text.lower() == "включить очередь", RoomVisiterState.ROOM_QUEUE_SCREEN)
+@router.message(IsAdmin(), F.text.lower() == "включить очередь")
 async def change_queue_enabled(message: types.Message, state: FSMContext):
     await switch_room_queue_enabled(message.from_user.id)
     await message.answer("✅ Вы включили очередь", parse_mode="HTML")
@@ -78,6 +83,7 @@ async def queue_pop_call(message: types.Message, state: FSMContext):
     Callback для принятия первого человека в очереди
     '''
     await queue_pop_handler(message, state)
+
 
 async def queue_pop_handler(message: types.Message, state: FSMContext):
     '''
@@ -138,41 +144,12 @@ async def queue_list_send(message: types.Message, user_id = None):
 
     log_user_info(user_id, f'Drawing queue list screen to user.')
 
-    main_form = None
-    user_role = await get_user_role(user_id)
-
-
-
-    if user_role == 'admins':
-
-        builder = ReplyKeyboardBuilder()
-
-        queue_state = await get_room_queue_enabled_by_userid(user_id)
-        queue_state_to_msg = {
-            None: "Включить",
-            True: "Выключить",
-            False: "Включить"
-        }
-
-        builder.row(types.KeyboardButton(text=f"{queue_state_to_msg[queue_state]} очередь"))
-        builder.row(types.KeyboardButton(text=f"Принять первого"))
-        builder.row(types.KeyboardButton(text="Назад"))
-
-        mf_kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
-        main_form = await get_queue_main_admin()
-    else:
-        main_form = await get_queue_main()
-
-        builder = ReplyKeyboardBuilder()
-
-        builder.row(types.KeyboardButton(text=f"Принять первого"))
-        builder.row(types.KeyboardButton(text="Назад"))
-
-        mf_kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
-
-    message_form = await get_queue_list_mesg(user_id)
-    title_message = await message.answer(main_form['mesg'], reply_markup=mf_kb)
-    queue_message = await message.answer(message_form['mesg'])
+    main_form, mf_kb = await get_queue_main_form(user_id)
+    print(main_form)
+    print(mf_kb)
+    title_message = await message.answer(main_form, reply_markup=mf_kb)
+    form_message, form_kb = await get_queue_list_mesg(user_id)
+    queue_message = await message.answer(form_message, reply_markup=form_kb)
     # , reply_markup=message_form['kb']
 
     if not(await update_cache_messages(user_id, 'title', title_message) and
@@ -238,15 +215,6 @@ async def assigned_screen(message: types.Message, pop_user_id):
     Меню для модераторов с назначенным студентом
     '''
     log_user_info(message.from_user.id, f'Drawing assigned screen to user.')
-    message_form = await get_assigned_mesg(pop_user_id)
+    form_message, form_kb = await get_assigned_mesg(pop_user_id)
 
-    from aiogram.utils.keyboard import ReplyKeyboardBuilder
-    builder = ReplyKeyboardBuilder()
-
-    builder.row(
-        types.KeyboardButton(text="Посмотреть очередь"),
-        types.KeyboardButton(text="В главное меню"),
-    )
-
-    kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
-    await message.answer(message_form['mesg'], reply_markup=kb, parse_mode="HTML")
+    await message.answer(form_message, reply_markup=form_kb, parse_mode="HTML")
