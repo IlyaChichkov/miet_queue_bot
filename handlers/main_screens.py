@@ -14,6 +14,7 @@ router = Router()
 
 @router.message(StateFilter(None))
 async def any_text(message: Message, state: FSMContext):
+    await message.answer(f"Возобновление сессии...")
     await start_command(message, state)
 
 
