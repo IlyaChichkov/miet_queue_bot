@@ -18,6 +18,11 @@ async def any_text(message: Message, state: FSMContext):
     await start_command(message, state)
 
 
+@router.message(Command("role"))
+async def state_command(message: Message, state: FSMContext):
+    await message.answer(f"Role cache: {users_role_cache}")
+
+
 @router.message(Command("state"))
 async def state_command(message: Message, state: FSMContext):
     current_state = await state.get_state()
