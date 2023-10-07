@@ -8,6 +8,8 @@ from firebase import db_create_room, user_join_room, enter_queue
 import re
 
 from handlers.room_welcome import welcome_room_state
+from keyboards.welcome_keyboard import get_welcome_kb
+from models.room import Room
 from states.room import RoomVisiterState
 
 router = Router()
@@ -49,7 +51,8 @@ async def create_room(message: types.Message, state: FSMContext):
             await message.answer(f"Не получилось создать комнату. Ошибка: {result['error_text']}")
             await state.set_state(WelcomeState.WELCOME_SCREEN)
     else:
-        await message.answer("Не получилось создать комнату.")
+        keyboard = get_welcome_kb()
+        await message.answer("Не получилось создать комнату.", reply_markup=keyboard)
         await state.set_state(WelcomeState.WELCOME_SCREEN)
 
 
@@ -89,5 +92,6 @@ async def join_room(message: types.Message, state: FSMContext):
             await message.answer(f"Ошибка подключения к комнате. {joined_room['error_text']}")
             await state.set_state(WelcomeState.WELCOME_SCREEN)
     else:
-        await message.answer("Неверный код подключения")
+        keyboard = get_welcome_kb()
+        await message.answer("Неверный код подключения.", reply_markup=keyboard)
         await state.set_state(WelcomeState.WELCOME_SCREEN)
