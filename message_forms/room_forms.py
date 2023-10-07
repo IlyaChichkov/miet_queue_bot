@@ -1,4 +1,8 @@
+from firebase import db_get_user_room
 from keyboards.room_keyboard import *
+from models.room import Room
+from models.server_users import get_user
+from models.user import User
 from roles.user_roles_enum import UserRoles
 
 role_to_welcome_kb = {
@@ -15,14 +19,15 @@ def get_user_role_in_room(user_id, room):
     if 'admins' in room and user_id in room['admins']:
         return UserRoles.Admin
 
-async def get_welcome_message(user_id, room):
-    role = get_user_role_in_room(user_id, room['room'])
+
+async def get_welcome_message(user_id, room: Room):
+    role = room.get_user_role(user_id)
     keyboard_func = role_to_welcome_kb.get(role, get_user_welcome_kb)
     kb = await keyboard_func(user_id)
 
-    room_name = room['room']['name']
-    moderator_code = room['room']['mod_password']
-    join_code = room['room']['join_code']
+    room_name = room.name
+    moderator_code = room.moderators_join_code
+    join_code = room.users_join_code
     role_to_welcome_text = {
         UserRoles.Admin:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n"
                           f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
@@ -34,3 +39,33 @@ async def get_welcome_message(user_id, room):
     }
     mesg_text = role_to_welcome_text.get(role, 'None')
     return { 'mesg_text': mesg_text, 'keyboard': kb }
+
+
+async def get_username(user_id):
+    user: User = await get_user(user_id)
+    if user:
+        return user.name
+    return ''
+
+
+async def get_users_list_form(user_id):
+    form_message = 'Список пуст'
+    form_kb = get_users_list_kb()
+
+    room_dict = await db_get_user_room(user_id)
+    if 'room' in room_dict:
+        room: Room = room_dict['room']
+        form_message = '🔸 Админы:\n'
+
+        for num, admin in enumerate(room.admins):
+            form_message += f'    <b>{await get_username(admin)}</b>\n'
+
+        form_message += '\n🔸 Модераторы:\n'
+        for num, moderator in enumerate(room.moderators):
+            form_message += f'{num + 1}.  <b>{await get_username(moderator)}</b>\n'
+
+        form_message += '\n🔹 Пользователи:\n'
+        for num, ruser in enumerate(room.users):
+            form_message += f'{num + 1}. <b>{await get_username(ruser)}</b>\n'
+
+    return form_message, form_kb

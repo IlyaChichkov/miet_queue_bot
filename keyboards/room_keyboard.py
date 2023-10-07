@@ -13,6 +13,7 @@ async def get_admin_welcome_kb(user_id):
     )
 
     builder.row(types.KeyboardButton(text="Настройки комнаты"))
+    builder.row(types.KeyboardButton(text="Список пользователей"))
 
     builder.row(
         types.KeyboardButton(
@@ -24,6 +25,7 @@ async def get_admin_welcome_kb(user_id):
     )
     return builder.as_markup(resize_keyboard=True)
 
+
 async def get_moderator_welcome_kb(user_id):
     builder = ReplyKeyboardBuilder()
 
@@ -34,6 +36,8 @@ async def get_moderator_welcome_kb(user_id):
 
     # builder.row(types.KeyboardButton(text="Принять случайного студента"))
 
+    builder.row(types.KeyboardButton(text="Список пользователей"))
+
     builder.row(
         types.KeyboardButton(
             text="Выйти"
@@ -43,6 +47,7 @@ async def get_moderator_welcome_kb(user_id):
         )
     )
     return builder.as_markup(resize_keyboard=True)
+
 
 async def get_user_welcome_kb(user_id):
     builder = ReplyKeyboardBuilder()
@@ -64,6 +69,17 @@ async def get_user_welcome_kb(user_id):
         ),
         types.KeyboardButton(
             text="Профиль"
+        )
+    )
+    return builder.as_markup(resize_keyboard=True)
+
+
+def get_users_list_kb():
+    builder = ReplyKeyboardBuilder()
+
+    builder.row(
+        types.KeyboardButton(
+            text="Назад"
         )
     )
     return builder.as_markup(resize_keyboard=True)
