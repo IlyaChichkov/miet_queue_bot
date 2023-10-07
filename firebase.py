@@ -1,52 +1,48 @@
 import re
-from collections import OrderedDict
 
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 import logging
 
-from events.queue_events import update_queue_event, queue_enable_state_event, user_joined_event, user_leave_event
-from utils import generate_password, generate_code
+from events.queue_events import update_queue_event, queue_enable_state_event, user_joined_event, username_changed_event
+from models.room import Room
+from models.server_passwords import load_passwords, check_password
+from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code
+from models.server_users import get_user
+from models.user import User
+from roles.user_roles_enum import UserRoles
 
 cred = credentials.Certificate("firebase.config.json")
 firebase_admin.initialize_app(cred, {
     'databaseURL': "https://queue-miet-default-rtdb.europe-west1.firebasedatabase.app/"
 })
 
-def get_new_room(user_id, room_name):
-    return {
-        'name': room_name,
-        'mod_password': generate_password(7),
-        'join_code': generate_code(4),
-        'queue_on_join': True,
-        'queue_enabled': False,
-        'admins': [ user_id ],
-        'moderators': None,
-        'users': None,
-        'banned': None
-    }
 
-
-async def get_room_by_key(room_key):
-    rooms_ref = db.reference(f'/rooms/{room_key}')
-    return rooms_ref.get()
+async def get_room_by_key(room_key) -> Room:
+    room = await get_room(room_key)
+    if room:
+        print('Successfully got room from server data!', room)
+        return room
+    else:
+        print('Error getting room from server data!', room)
+        return None
 
 
 async def db_get_user_room(user_id):
+    print('Get user\'s room')
     try:
-        user = await get_user(user_id)
-        user_key, user_data = list(user.items())[0]
+        room = await get_room_where_user(user_id)
+        if room:
+            print('Successfully got room from server data!', room)
+            return { 'room': room }
 
-        if 'room' not in user_data:
+        user: User = await get_user(user_id)
+
+        if user.room == '':
             return { 'error': 'User has no connected room' }
 
-        room_key = user_data['room']
-
-        if room_key == "":
-            return { 'error': 'User has no connected room' }
-
-        room = await get_room_by_key(room_key)
+        room = await get_room_by_key(user.room)
         if room:
             return { 'room': room }
         else:
@@ -58,156 +54,72 @@ async def db_get_user_room(user_id):
         return { 'error': str(e) }
 
 
+async def check_room_exist(room_id):
+    rooms_ref = db.reference('/rooms')
+    if rooms_ref.child(room_id).get() is None:
+        return False
+    return True
+
+
 async def db_create_room(user_id, password, room_name):
+    print('Try create new room')
     try:
         # TODO: check user is in other room already
 
         # Check admin password to create room
+        await load_passwords()
         pass_ref = db.reference('/root_passwords')
         passwords = pass_ref.get()
-        correct = False
 
-        for root_password in passwords:
-            if root_password == password:
-                correct = True
+        correct = await check_password(password)
 
         if not correct:
             return { 'error': 'Wrong password', 'error_text': 'У вас нет прав доступа к этому действию.' }
 
-        # Check if room with the same name is already exist
-        rooms_ref = db.reference('/rooms')
-        room = rooms_ref.order_by_child('name').equal_to(room_name).get()
-        if room:
-            # user_key, user_data = list(room.items())[0]
-            return {'error': 'Room name duplicate', 'error_text': 'Такая комната уже есть.'}
+        room: Room = await create_room(user_id, room_name)
 
-        room = get_new_room(user_id, room_name)
-        room_ref = rooms_ref.push(room)
-
-        users_ref = db.reference('/users')
         user = await get_user(user_id)
-        if user:
-            user_key, user_data = list(user.items())[0]
+        await user.set_room(room.room_id)
+        await user.update_role('admins')
 
-            user_data['room'] = room_ref.key
-
-            users_ref.child(user_key).set(user_data)
-
-        await set_user_role(user_id, 'admins')
-        return { 'room': room }
+        return { 'room': room.to_dict() }
     except Exception as e:
         error_message = f"Error creating room. Arguments: {user_id}, {password}, {room_name}. Error: {str(e)}"
         logging.error(error_message)  # Log the error
         return { 'error': str(e), 'error_text': str(e) }
 
 
-async def get_user(user_id):
-    users_ref = db.reference('/users')
-    user = users_ref.order_by_child('tg_id').equal_to(user_id).get()
-
-    if user:
-        # Return existing user
-        return user
-    else:
-        # Create user
-        new_user_dict = {
-            'tg_id': user_id,
-            'name': f'User_{generate_code(5)}',
-            'room': "",
-            'current_role': "",
-            'data': {}
-        }
-        logging.info(f'New user was created: {new_user_dict}')
-        new_user_ref = users_ref.push(new_user_dict)
-        result = OrderedDict()
-        result[new_user_ref.key] = db.reference(f'/users/{new_user_ref.key}').get()
-        return result
-
-
-async def get_user_data(user_id):
-    user = await get_user(user_id)
-    return list(user.items())[0]
-
-
-async def get_user_room(user_id):
+async def get_user_room_key(user_id):
     """
     Возвращает room_key
     """
-    user_key, user_data = await get_user_data(user_id)
-    if 'room' in user_data:
-        room_key = user_data['room']
-        if room_key == "":
-            return None
-        else:
-            return user_data['room']
+    user: User = await get_user(user_id)
+    if user.room != '':
+        return user.room
     else:
         return None
 
 
 async def leave_room(user_id):
-    user_key, user_data = await get_user_data(user_id)
-    room_key = user_data['room']
+    user: User = await get_user(user_id)
+    room_key = user.room
     room = await get_room_by_key(room_key)
-
-    if 'users' in room and user_id in room['users']:
-        room['users'].remove(user_id)
-        if 'queue' in room and user_id in room['queue']:
-            room['queue'].remove(user_id)
-            await user_leave_event.fire(user_id)
-            await set_user_role(user_id, '')
-    elif 'moderators' in room and user_id in room['moderators']:
-        room['moderators'].remove(user_id)
-        await user_leave_event.fire(user_id)
-        await set_user_role(user_id, '')
-    else:
-        return False
-
-    await set_user_room(user_id, None)
-
-    rooms_ref = db.reference('/rooms')
-    rooms_ref.child(room_key).set(room)
+    await room.remove_user(user_id)
     return True
 
 
 async def set_user_room(user_id, room_key):
-    users_ref = db.reference('/users')
-    user_key, user_data = await get_user_data(user_id)
-    user_data['room'] = room_key
-    users_ref.child(user_key).set(user_data)
+    logging.info(f'Set USER_{user_id} room: {room_key}')
+    user: User = await get_user(user_id)
+    await user.set_room(room_key)
 
 
 async def delete_room(user_id):
-    user_key, user_data = await get_user_data(user_id)
-    room_key = user_data['room']
+    user: User = await get_user(user_id)
+    room_key = user.room
     room = await get_room_by_key(room_key)
-
-    # TODO: Refactor admin check
-    if 'admins' in room:
-        if user_id not in room['admins']:
-            return False
-
-    if 'users' in room:
-        for user_id in room['users']:
-            await force_user_leave_room(user_id)
-
-    if 'moderators' in room:
-        for user_id in room['moderators']:
-            await force_user_leave_room(user_id)
-
-    if 'admins' in room:
-        for user_id in room['admins']:
-            await force_user_leave_room(user_id)
-
-    logging.info(f'Deleting room, id: {room_key}, name: {room["name"]}')
-    room_ref = db.reference(f'/rooms/{room_key}')
-    room_ref.delete()
+    await room.delete(user_id)
     return True
-
-
-async def force_user_leave_room(user_id):
-    await set_user_role(user_id, '')
-    await set_user_room(user_id, None)
-    await user_leave_event.fire(user_id)
 
 
 async def user_join_room(user_id, room_code, user_role):
@@ -215,78 +127,57 @@ async def user_join_room(user_id, room_code, user_role):
         'user': 'users',
         'moderator': 'moderators'
     }
-    role_to_room_code = {
-        'user': 'join_code',
-        'moderator': 'mod_password'
-    }
     try:
-        users_ref = db.reference('/users')
-        user = await get_user(user_id)
-
-        room_key = await get_user_room(user_id)
+        room_key = await get_user_room_key(user_id)
         if room_key is not None:
-            return { 'error': "Connected to other room" }
+            if not await check_room_exist(room_key):
+                await set_user_room(user_id, '')
+            else:
+                return {'error': "Connected to other room", 'error_text': 'Вы уже подключены к другой комнате' }
 
-        rooms_ref = db.reference('/rooms')
-        room = rooms_ref.order_by_child(role_to_room_code[user_role]).equal_to(room_code).get()
+        room = await get_room_by_join_code(room_code, user_role)
         if room:
-            room_key, room_data = list(room.items())[0]
-            user_key, user_data = list(user.items())[0]
-            user_data['room'] = room_key
-            users_ref.child(user_key).set(user_data)
+            if user_role == 'user':
+                await room.add_user(user_id, UserRoles.User)
+            if user_role == 'moderator':
+                await room.add_user(user_id, UserRoles.Moderator)
+            await set_user_room(user_id, room.room_id)
 
-            try:
-                room_data[role_to_room_list[user_role]].append(user_id)
-            except KeyError:
-                room_data[role_to_room_list[user_role]] = [ user_id ]
-
-            rooms_ref.child(room_key).set(room_data)
             await set_user_role(user_id, role_to_room_list[user_role])
-            await user_joined_event.fire(room_key, user_data, user_role)
-            return { 'room': room_data }
+            await user_joined_event.fire(room, user_id, user_role)
+            result = { 'room': room }
+            return result
 
         return { 'error': 'Room not found', 'error_text': 'Комната не найдена.' }
     except Exception as e:
-        error_message = f"Error joining room. Arguments: {user_id}, {room_code}. Error: {str(e)}"
+        error_message = f"Error joining room. Arguments:\nuser_id:{user_id};\nroom_join_code:{room_code}\nError: {str(e)}"
         logging.error(error_message)
         return { 'error': str(e), 'error_text': str(e) }
 
 
 async def get_room_queue(room_key):
     room = await get_room_by_key(room_key)
-    if 'queue' in room:
-        return room['queue']
-    else:
-        return None
+    return room.queue
 
 
 async def get_queue_users(room_key):
     queue_users = await get_room_queue(room_key)
     users_names = []
-    if queue_users:
-        for user_id in queue_users:
-            user_key, user_data = await get_user_data(user_id)
-            users_names.append(user_data['name'])
+    for user_id in queue_users:
+        user: User = await get_user(user_id)
+        users_names.append(user.name)
 
-        return users_names
-    return None
+    return users_names
 
 
 async def exit_queue(user_id):
     if not await is_user_in_queue(user_id):
         return False
 
-    user_key, user_data = await get_user_data(user_id)
-    room_key = user_data['room']
+    user: User = await get_user(user_id)
+    room_key = user.room
     room = await get_room_by_key(room_key)
-
-    try:
-        room['queue'].remove(user_id)
-    except Exception as e:
-        logging.error(str(e))
-
-    rooms_ref = db.reference('/rooms')
-    rooms_ref.child(room_key).set(room)
+    await room.queue_remove(user_id)
     await update_queue_event.fire()
     return True
 
@@ -295,117 +186,85 @@ async def enter_queue(user_id):
     if await is_user_in_queue(user_id):
         return -1
 
-    user_key, user_data = await get_user_data(user_id)
-    room_key = user_data['room']
+    user: User = await get_user(user_id)
+    room_key = user.room
 
     room = await get_room_by_key(room_key)
-    place = -1
-
-    try:
-        place = len(room['queue']) + 1
-        room['queue'].append(user_id)
-    except KeyError:
-        place = 1
-        room['queue'] = [user_id]
-
-    rooms_ref = db.reference('/rooms')
-    rooms_ref.child(room_key).set(room)
+    place = len(room.queue) + 1
+    await room.queue_add(user_id)
     await update_queue_event.fire()
     return place
 
 
-async def get_room_option(user_id, option_name):
-    room = await get_room_by_key(await get_user_room(user_id))
-    if option_name in room:
-        return room[option_name]
+async def is_autoqueue_enabled(user_id):
+    room = await get_room_by_key(await get_user_room_key(user_id))
+    return room.is_queue_on_join
 
 
 async def is_user_in_queue(user_id):
-    room = await get_room_by_key(await get_user_room(user_id))
-    if 'queue' in room and user_id in room['queue']:
+    room = await get_room_by_key(await get_user_room_key(user_id))
+    if room and user_id in room.queue:
         return True
     return False
 
 
 async def get_room_queue_enabled_by_userid(user_id) -> bool:
-    room_key = await get_user_room(user_id)
+    room_key = await get_user_room_key(user_id)
     return await get_room_queue_enabled(room_key)
 
 
 async def get_room_queue_enabled(room_key) -> bool:
     room = await get_room_by_key(room_key)
-
-    if 'queue_enabled' in room:
-        return room['queue_enabled']
+    if room:
+        return room.is_queue_enabled
+    return None
 
 
 async def get_user_role(user_id):
-    room_key = await get_user_room(user_id)
+    room_key = await get_user_room_key(user_id)
     room = await get_room_by_key(room_key)
-    user_role = None
-    if 'users' in room and user_id in room['users']:
-        user_role = 'users'
-    if 'moderators' in room and user_id in room['moderators']:
-        user_role = 'moderators'
-    if 'admins' in room and user_id in room['admins']:
-        user_role = 'admins'
+    user_role = room.get_user_group(user_id)
     logging.info(f'USER_{user_id}: Get user role: {user_role}')
     return user_role
 
 
 async def switch_room_queue_enabled(user_id):
-    room_key = await get_user_room(user_id)
+    room_key = await get_user_room_key(user_id)
     room = await get_room_by_key(room_key)
-
-    if 'queue_enabled' in room:
-        new_val: bool = not room['queue_enabled']
-        room['queue_enabled'] = new_val
-        queue_state = {
-            True: "enabled",
-            False: "disabled"
-        }
-        logging.info(f'Queue in room {room_key} is {queue_state[new_val]}')
-
-        # Записываем состояние
-        rooms_ref = db.reference('/rooms')
-        rooms_ref.child(room_key).set(room)
-        # Удаляем очередь
-        queue_ref = db.reference(f'/rooms/{room_key}/queue')
-        queue_ref.delete()
-        await queue_enable_state_event.fire(room_key, new_val)
+    await room.switch_queue_enabled()
+    new_val: bool = room.is_queue_enabled
+    queue_state = {
+        True: "enabled",
+        False: "disabled"
+    }
+    logging.info(f'Queue in room {room_key} is {queue_state[new_val]}')
+    await queue_enable_state_event.fire(room_key, new_val)
 
 
 async def change_room_auto_queue(room_key):
     room = await get_room_by_key(room_key)
-
-    if 'queue_on_join' in room:
-        new_val = not room['queue_on_join']
-        room['queue_on_join'] = new_val
-        logging.info(f'Auto queue join in room {room_key} set to {new_val}')
-
-        rooms_ref = db.reference('/rooms')
-        rooms_ref.child(room_key).set(room)
+    await room.switch_autoqueue_enabled()
+    logging.info(f'Auto queue join in room {room_key} set to {room.is_queue_on_join}')
 
 
 async def change_room_name(user_id, new_name):
-    user_key, user_data = await get_user_data(user_id)
-    room_key = user_data['room']
+    user: User = await get_user(user_id)
+    room_key = user.room
 
     room = await get_room_by_key(room_key)
-    room['name'] = new_name
-
-    rooms_ref = db.reference('/rooms')
-    rooms_ref.child(room_key).set(room)
+    await room.update_name(new_name)
     return True
 
 
 async def change_user_name(user_id, new_name):
-    user_key, user_data = await get_user_data(user_id)
-    user_data['name'] = new_name
-
-    user_ref = db.reference('/users')
-    user_ref.child(user_key).set(user_data)
-    return True
+    try:
+        user: User = await get_user(user_id)
+        await user.update_name(new_name)
+        await username_changed_event.fire()
+        return True
+    except Exception as e:
+        logging.error(f'Update user name error: {str(e)}')
+        return False
 
 
 def default_name_regular(input_text):
@@ -414,59 +273,38 @@ def default_name_regular(input_text):
 
 
 async def is_user_name_default(user_id):
-    user_key, user_data = await get_user_data(user_id)
-    return default_name_regular(user_data['name'])
+    user: User = await get_user(user_id)
+    return default_name_regular(user.name)
 
 
 async def get_user_name(user_id):
-    user_key, user_data = await get_user_data(user_id)
-    return user_data['name']
+    user: User = await get_user(user_id)
+    return user.name
 
 
 async def get_user_role_at_room(user_id):
-    user_key, user_data = await get_user_data(user_id)
-    room_key = user_data['room']
-
-    room = await get_room_by_key(room_key)
-
-    if 'admins' in room and user_id in room['admins']:
-        return 'admins'
-    if 'moderators' in room and user_id in room['moderators']:
-        return 'moderators'
-    if 'users' in room and user_id in room['users']:
-        return 'users'
+    user: User = await get_user(user_id)
+    room = await get_room_by_key(user.room)
+    return room.get_user_group(user_id)
 
 
 async def set_user_role(user_id, role):
-    user_key, user_data = await get_user_data(user_id)
-    user_data['current_role'] = role
-
-    user_ref = db.reference('/users')
-    user_ref.child(user_key).set(user_data)
-    return True
+    try:
+        user: User = await get_user(user_id)
+        await user.update_role(role)
+        return True
+    except Exception as e:
+        logging.error(f'Update user role error: {str(e)}')
+        return False
 
 
 async def get_user_current_role(user_id):
-    user_key, user_data = await get_user_data(user_id)
-    if 'current_role' in user_data:
-        return user_data['current_role']
-    else:
-        await set_user_role(user_id, await get_user_role_at_room(user_id))
-    return ''
+    user: User = await get_user(user_id)
+    return user.current_role
 
 
 async def queue_pop(user_id):
-    if await is_user_in_queue(user_id):
-        return -1
-
-    user_key, user_data = await get_user_data(user_id)
-    room_key = user_data['room']
-
-    room = await get_room_by_key(room_key)
-    first_in_queue = None
-    if 'queue' in room:
-        first_in_queue = room['queue'].pop(0)
-        rooms_ref = db.reference('/rooms')
-        rooms_ref.child(room_key).set(room)
-
-    return first_in_queue
+    user: User = await get_user(user_id)
+    room = await get_room_by_key(user.room)
+    user_pop_id = await room.queue_pop(user_id)
+    return user_pop_id
