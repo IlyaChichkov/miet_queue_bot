@@ -17,7 +17,7 @@ async def get_admin_welcome_kb(user_id):
 
     builder.row(
         types.KeyboardButton(
-            text="Удалить комнату"
+            text="Выйти"
         ),
         types.KeyboardButton(
             text="Профиль"
