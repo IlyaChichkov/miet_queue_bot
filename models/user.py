@@ -7,13 +7,13 @@ from events.queue_events import user_leave_event
 
 
 class User:
-    db_key: str = ''
-    user_id: str = ''
-    current_role: str = ''
-    name: str = ''
-    room: str = ''
-
     def __init__(self, name):
+        self.db_key: str = ''
+        self.user_id: str = ''
+        self.current_role: str = ''
+        self.name: str = ''
+        self.room: str = ''
+
         self.name = name
 
     def set_user_id(self, user_id):
