@@ -34,13 +34,11 @@ async def moderator_joined_notify(room, user_id):
 
     message_form = f'Модератор «<b>{user.name}</b>» присоединился к комнате'
 
-    if 'users' in room:
-        for user_num, user_in_room in enumerate(room['users']):
-            await bot.send_message(user_in_room, message_form, parse_mode="HTML")
+    for user_num, user_in_room in enumerate(room.users):
+        await bot.send_message(user_in_room, message_form, parse_mode="HTML")
 
-    if 'admins' in room:
-        for user_num, user_in_room in enumerate(room['admins']):
-            await bot.send_message(user_in_room, message_form, parse_mode="HTML")
+    for user_num, user_in_room in enumerate(room.admins):
+        await bot.send_message(user_in_room, message_form, parse_mode="HTML")
 
 
 user_joined_event.add_handler(joined_notify)
