@@ -82,7 +82,8 @@ async def add_room(room: Room):
 
 async def remove_room(room_id, user_id):
     logging.info(f'Removing room cache: {room_id}')
-    rooms_to_remove = [room for room in server_rooms if room.id == room_id]
+    rooms_to_remove = [room for room in server_rooms if room.room_id == room_id]
+    await rooms_to_remove[0].delete(user_id)
     server_rooms.remove(rooms_to_remove[0])
 
 async def get_room_by_join_code(join_code, user_role):
