@@ -156,11 +156,11 @@ class Room:
     ''' DELETE ROOM '''
     async def delete(self, user_id):
         logging.info(f'Deleting room, id: {self.room_id}, name: {self.name}')
-        await (self.__delete_task(user_id))
-        await update_room_event.fire(self)
+        await self.__delete_task(user_id)
+        await self.__delete_room()
 
     async def __delete_task(self, user_id):
-        role: UserRoles = await self.get_user_role(user_id)
+        role: UserRoles = self.get_user_role(user_id)
         if role != UserRoles.Admin:
             return
 
