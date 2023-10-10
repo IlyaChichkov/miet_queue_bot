@@ -45,14 +45,14 @@ username_changed_event.add_handler(update_list_for_users)
 update_queue_event.add_handler(update_list_for_users)
 
 
-@router.message(IsAdmin(), F.text.lower() == "выключить очередь")
+@router.message(IsAdmin(), F.text.lower() == "⛔ выключить очередь")
 async def change_queue_enabled(message: types.Message, state: FSMContext):
     await switch_room_queue_enabled(message.from_user.id)
     await message.answer("⛔ Вы выключили очередь", parse_mode="HTML")
     await queue_list_send(message)
 
 
-@router.message(IsAdmin(), F.text.lower() == "включить очередь")
+@router.message(IsAdmin(), F.text.lower() == "✅ включить очередь")
 async def change_queue_enabled(message: types.Message, state: FSMContext):
     await switch_room_queue_enabled(message.from_user.id)
     await message.answer("✅ Вы включили очередь", parse_mode="HTML")
