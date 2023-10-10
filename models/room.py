@@ -175,6 +175,14 @@ class Room:
         rooms_ref = db.reference('/rooms')
         rooms_ref.child(self.room_id).set(self.to_dict())
 
+    ''' DELETE ROOM '''
+    async def __delete_room(self):
+        if self.room_id == '':
+            logging.error('Room in cache has empty ID!')
+            return
+        rooms_ref = db.reference('/rooms')
+        rooms_ref.child(self.room_id).delete()
+
     ''' UPDATE USERS '''
     async def __update_users(self):
         if self.room_id == '':

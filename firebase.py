@@ -8,7 +8,7 @@ import logging
 from events.queue_events import update_queue_event, queue_enable_state_event, user_joined_event, username_changed_event
 from models.room import Room
 from models.server_passwords import load_passwords, check_password
-from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code
+from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code, remove_room
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles
@@ -117,8 +117,7 @@ async def set_user_room(user_id, room_key):
 async def delete_room(user_id):
     user: User = await get_user(user_id)
     room_key = user.room
-    room = await get_room_by_key(room_key)
-    await room.delete(user_id)
+    await remove_room(room_key, user_id)
     return True
 
 
