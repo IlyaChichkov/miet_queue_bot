@@ -12,18 +12,26 @@ from utils import generate_password, generate_code
 
 
 class Room:
-    room_id = ''
-    name = ''
-    users_join_code = ''
-    moderators_join_code = ''
-    is_queue_enabled = False
-    is_queue_on_join = True
+    def __init__(self, name, admin_id = None):
+        # Default values
+        self.room_id = ''
+        self.name = ''
+        self.users_join_code = ''
+        self.moderators_join_code = ''
+        self.is_queue_enabled = False
+        self.is_queue_on_join = True
+        self.admins = []
+        self.moderators = []
+        self.users = []
 
-    admins = []
-    moderators = []
-    users = []
+        self.queue = []
 
-    queue = []
+        # Set values
+        self.name = name
+        if admin_id:
+            self.admins.append(admin_id)
+        self.moderators_join_code = generate_password(7)
+        self.users_join_code = generate_code(4)
 
     def role_to_list(self, role):
         t = {
@@ -32,12 +40,6 @@ class Room:
             UserRoles.Admin: self.admins
         }
         return t[role]
-
-    def __init__(self, admin_id, name):
-        self.name = name
-        self.admins.append(admin_id)
-        self.moderators_join_code = generate_password(7)
-        self.users_join_code = generate_code(4)
 
     def set_room_id(self, room_id):
         self.room_id = room_id
@@ -77,6 +79,8 @@ class Room:
 
     async def __switch_queue_enabled_task(self):
         self.is_queue_enabled = not self.is_queue_enabled
+        if not self.is_queue_enabled:
+            await self.queue_clear()
 
     ''' QUEUE POP '''
     async def queue_pop(self, user_id):
@@ -109,6 +113,14 @@ class Room:
     async def queue_remove_task(self, user_id):
         self.queue.remove(user_id)
 
+    ''' QUEUE CLEAR '''
+    async def queue_clear(self):
+        await (self.queue_clear_task())
+        await update_room_event.fire(self)
+
+    async def queue_clear_task(self):
+        self.queue.clear()
+
     ''' ADD USER '''
     async def add_user(self, user_id, role: UserRoles):
         await (self.__add_user_task(user_id, role))
@@ -128,6 +140,7 @@ class Room:
         await (self.__update_database())
 
     async def __remove_user_task(self, user_id):
+        # if user_id not in self.admins:
         if user_id in self.queue:
             self.queue.remove(user_id)
         self.role_to_list(self.get_user_role(user_id)).remove(user_id)
@@ -142,17 +155,39 @@ class Room:
     async def __update_name_task(self, new_name):
         self.name = new_name
 
-    ''' DELETE ROOM '''
-    async def delete(self, user_id):
-        logging.info(f'Deleting room, id: {self.room_id}, name: {self.name}')
-        await (self.__delete_task(user_id))
-        await update_room_event.fire(self)
+    ''' GET USERS LIST '''
+    def get_users_list(self):
+        users = []
 
-    async def __delete_task(self, user_id):
-        role: UserRoles = await self.get_user_role(user_id)
+        for user_id in self.users:
+            users.append(user_id)
+
+        for user_id in self.moderators:
+            users.append(user_id)
+
+        for user_id in self.admins:
+            users.append(user_id)
+
+        return users
+
+    ''' CHECK IF USER IN ADMINS LIST '''
+    async def is_user_admin(self, user_id):
+        role: UserRoles = self.get_user_role(user_id)
         if role != UserRoles.Admin:
-            return
+            return False
+        return True
 
+    ''' GET USERS COUNT '''
+    def get_users_count(self):
+        return len(self.get_users_list())
+
+    ''' DELETE ROOM '''
+    async def delete(self):
+        logging.info(f'Deleting room, id: {self.room_id}, name: {self.name}')
+        await self.__delete_task()
+        await self.__delete_room()
+
+    async def __delete_task(self):
         for user_id in self.users:
             user: User = await get_user(user_id)
             await user.leave_room()
@@ -174,6 +209,14 @@ class Room:
         log_database_update(self.to_dict())
         rooms_ref = db.reference('/rooms')
         rooms_ref.child(self.room_id).set(self.to_dict())
+
+    ''' DELETE ROOM '''
+    async def __delete_room(self):
+        if self.room_id == '':
+            logging.error('Room in cache has empty ID!')
+            return
+        rooms_ref = db.reference('/rooms')
+        rooms_ref.child(self.room_id).delete()
 
     ''' UPDATE USERS '''
     async def __update_users(self):

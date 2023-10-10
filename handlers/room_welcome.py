@@ -14,8 +14,12 @@ router = Router()
 # update_queue_event.add_handler(update_list_for_users)
 
 
-async def welcome_room(message: types.Message):
-    user_id = message.from_user.id
+async def welcome_room(message: types.Message, user_id = None):
+    '''
+    Вывод сообщения главного меню комнаты
+    '''
+    if not user_id:
+        user_id = message.from_user.id
     room = await db_get_user_room(user_id)
     user_name = await get_user_name(user_id)
 

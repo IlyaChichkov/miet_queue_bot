@@ -8,6 +8,7 @@ user_leave_event = AsyncEvent()
 
 username_changed_event = AsyncEvent()
 
+delete_room_event = AsyncEvent()
 update_room_event = AsyncEvent()
 update_user_event = AsyncEvent()
 

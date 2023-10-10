@@ -8,7 +8,7 @@ import logging
 from events.queue_events import update_queue_event, queue_enable_state_event, user_joined_event, username_changed_event
 from models.room import Room
 from models.server_passwords import load_passwords, check_password
-from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code
+from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code, remove_room
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles
@@ -38,7 +38,7 @@ async def db_get_user_room(user_id):
             return { 'room': room }
 
         user: User = await get_user(user_id)
-
+        print(f'>>> db_get_user_room: USER: {user.to_dict()}')
         if user.room == '':
             return { 'error': 'User has no connected room' }
 
@@ -61,21 +61,9 @@ async def check_room_exist(room_id):
     return True
 
 
-async def db_create_room(user_id, password, room_name):
+async def db_create_room(user_id, room_name):
     print('Try create new room')
     try:
-        # TODO: check user is in other room already
-
-        # Check admin password to create room
-        await load_passwords()
-        pass_ref = db.reference('/root_passwords')
-        passwords = pass_ref.get()
-
-        correct = await check_password(password)
-
-        if not correct:
-            return { 'error': 'Wrong password', 'error_text': 'У вас нет прав доступа к этому действию.' }
-
         room: Room = await create_room(user_id, room_name)
 
         user = await get_user(user_id)
@@ -84,7 +72,7 @@ async def db_create_room(user_id, password, room_name):
 
         return { 'room': room.to_dict() }
     except Exception as e:
-        error_message = f"Error creating room. Arguments: {user_id}, {password}, {room_name}. Error: {str(e)}"
+        error_message = f"Error creating room. Arguments: {user_id}, {room_name}. Error: {str(e)}"
         logging.error(error_message)  # Log the error
         return { 'error': str(e), 'error_text': str(e) }
 
@@ -117,9 +105,25 @@ async def set_user_room(user_id, room_key):
 async def delete_room(user_id):
     user: User = await get_user(user_id)
     room_key = user.room
-    room = await get_room_by_key(room_key)
-    await room.delete(user_id)
+    await remove_room(room_key, user_id)
     return True
+
+
+async def get_user_owned_rooms_list(user_id):
+    user: User = await get_user(user_id)
+    return user.owned_rooms
+
+
+async def admin_join_room(user_id, room_code):
+    # TODO: Connect to room as admin
+
+    room = await get_room(room_code)
+    await room.add_user(user_id, UserRoles.Admin)
+    await set_user_room(user_id, room.room_id)
+    await set_user_role(user_id, 'admins')
+    await user_joined_event.fire(room, user_id, 'admin')
+    result = {'room': room}
+    return result
 
 
 async def user_join_room(user_id, room_code, user_role):
@@ -136,6 +140,7 @@ async def user_join_room(user_id, room_code, user_role):
                 return {'error': "Connected to other room", 'error_text': 'Вы уже подключены к другой комнате' }
 
         room = await get_room_by_join_code(room_code, user_role)
+
         if room:
             if user_role == 'user':
                 await room.add_user(user_id, UserRoles.User)

@@ -4,7 +4,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from firebase import db_get_user_room
 from handlers.room_welcome import welcome_room
-from keyboards.welcome_keyboard import get_welcome_kb
+from message_forms.welcome_form import get_welcome_form
 from models.server_users import get_user
 from models.user import User
 from roles.role_cache import users_role_cache
@@ -56,7 +56,8 @@ async def start_command(message: types.Message, state: FSMContext):
             await welcome_room(message)
             return
 
-    keyboard = get_welcome_kb()
+    await state.set_state(WelcomeState.WELCOME_SCREEN)
+
     start_image = FSInputFile("assets/images/welcome.png")
     # TODO: Too slow welcome image loading
     '''
@@ -64,5 +65,5 @@ async def start_command(message: types.Message, state: FSMContext):
         "https://i.postimg.cc/MpCGsd4H/1.png"
     )
     '''
-    await message.answer_photo(start_image, "Добро пожаловать в QueueBot! Пожалуйста выберите действие:", reply_markup=keyboard)
-    await state.set_state(WelcomeState.WELCOME_SCREEN)
+    form_message, form_kb = await get_welcome_form(message.from_user.first_name, message.from_user.id)
+    await message.answer_photo(start_image, form_message, reply_markup=form_kb)

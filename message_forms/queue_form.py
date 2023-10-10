@@ -34,13 +34,13 @@ async def get_queue_main_form(user_id):
     if user_role == 'admins':
         queue_state = await get_room_queue_enabled_by_userid(user_id)
         queue_state_to_msg = {
-            None: "Включить",
-            True: "Выключить",
-            False: "Включить"
+            None: "✅ Включить",
+            True: "⛔ Выключить",
+            False: "✅ Включить"
         }
 
-        builder.row(types.KeyboardButton(text=f"{queue_state_to_msg[queue_state]} очередь"))
-        builder.row(types.KeyboardButton(text=f"Принять первого"))
+        builder.row(types.KeyboardButton(text=f"{queue_state_to_msg[queue_state]} очередь"),
+        types.KeyboardButton(text=f"Принять первого"))
         builder.row(types.KeyboardButton(text="Назад"))
 
         mf_kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
