@@ -12,18 +12,25 @@ from utils import generate_password, generate_code
 
 
 class Room:
-    room_id = ''
-    name = ''
-    users_join_code = ''
-    moderators_join_code = ''
-    is_queue_enabled = False
-    is_queue_on_join = True
+    def __init__(self, admin_id, name):
+        # Default values
+        self.room_id = ''
+        self.name = ''
+        self.users_join_code = ''
+        self.moderators_join_code = ''
+        self.is_queue_enabled = False
+        self.is_queue_on_join = True
+        self.admins = []
+        self.moderators = []
+        self.users = []
 
-    admins = []
-    moderators = []
-    users = []
+        self.queue = []
 
-    queue = []
+        # Set values
+        self.name = name
+        self.admins.append(admin_id)
+        self.moderators_join_code = generate_password(7)
+        self.users_join_code = generate_code(4)
 
     def role_to_list(self, role):
         t = {
@@ -32,12 +39,6 @@ class Room:
             UserRoles.Admin: self.admins
         }
         return t[role]
-
-    def __init__(self, admin_id, name):
-        self.name = name
-        self.admins.append(admin_id)
-        self.moderators_join_code = generate_password(7)
-        self.users_join_code = generate_code(4)
 
     def set_room_id(self, room_id):
         self.room_id = room_id
@@ -77,6 +78,8 @@ class Room:
 
     async def __switch_queue_enabled_task(self):
         self.is_queue_enabled = not self.is_queue_enabled
+        if not self.is_queue_enabled:
+            await self.queue_clear()
 
     ''' QUEUE POP '''
     async def queue_pop(self, user_id):
