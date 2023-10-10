@@ -30,15 +30,15 @@ async def try_get_user_from_db(user_id) -> User:
     try:
         users_ref = db.reference(f'/users/')
         user_db = users_ref.order_by_child('tg_id').equal_to(user_id).get()
-        return load_room_from_json(user_db)
+        user_key, user_data = list(user_db.items())[0]
+        return load_user_from_json(user_key, user_data)
     except Exception as e:
         logging.warning(f'Load user from database failed. Exception: {str(e)}')
         return None
 
 
-def load_room_from_json(db_user) -> User:
-    user_key, user_data = list(db_user.items())[0]
-    if db_user is None:
+def load_user_from_json(user_key, user_data) -> User:
+    if user_data is None:
         return None
 
     user = User(user_data['name'])
