@@ -153,17 +153,34 @@ class Room:
     async def __update_name_task(self, new_name):
         self.name = new_name
 
-    ''' DELETE ROOM '''
-    async def delete(self, user_id):
-        logging.info(f'Deleting room, id: {self.room_id}, name: {self.name}')
-        await self.__delete_task(user_id)
-        await self.__delete_room()
+    def get_users_list(self):
+        users = []
 
-    async def __delete_task(self, user_id):
+        for user_id in self.users:
+            users.append(user_id)
+
+        for user_id in self.moderators:
+            users.append(user_id)
+
+        for user_id in self.admins:
+            users.append(user_id)
+
+        return users
+
+    async def is_user_admin(self, user_id):
         role: UserRoles = self.get_user_role(user_id)
         if role != UserRoles.Admin:
-            return
+            return False
+        return True
 
+
+    ''' DELETE ROOM '''
+    async def delete(self):
+        logging.info(f'Deleting room, id: {self.room_id}, name: {self.name}')
+        await self.__delete_task()
+        await self.__delete_room()
+
+    async def __delete_task(self):
         for user_id in self.users:
             user: User = await get_user(user_id)
             await user.leave_room()

@@ -4,7 +4,7 @@ from typing import List
 
 from firebase_admin import db
 
-from events.queue_events import update_room_event
+from events.queue_events import update_room_event, delete_room_event
 from models.room import Room
 
 server_rooms: List[Room] = []
@@ -83,8 +83,13 @@ async def add_room(room: Room):
 async def remove_room(room_id, user_id):
     logging.info(f'Removing room cache: {room_id}')
     rooms_to_remove = [room for room in server_rooms if room.room_id == room_id]
-    await rooms_to_remove[0].delete(user_id)
-    server_rooms.remove(rooms_to_remove[0])
+    room_to_remove = rooms_to_remove[0]
+
+    is_admin = await room_to_remove.is_user_admin()
+    if is_admin:
+        await delete_room_event.fire(room_to_remove.get_users_list())
+        await room_to_remove.delete()
+        server_rooms.remove(room_to_remove)
 
 async def get_room_by_join_code(join_code, user_role):
     logging.info(f'Get room by join code\nCode:{join_code}')
