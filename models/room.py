@@ -112,6 +112,14 @@ class Room:
     async def queue_remove_task(self, user_id):
         self.queue.remove(user_id)
 
+    ''' QUEUE CLEAR '''
+    async def queue_clear(self):
+        await (self.queue_clear_task())
+        await update_room_event.fire(self)
+
+    async def queue_clear_task(self):
+        self.queue.clear()
+
     ''' ADD USER '''
     async def add_user(self, user_id, role: UserRoles):
         await (self.__add_user_task(user_id, role))
