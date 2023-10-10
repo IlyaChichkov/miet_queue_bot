@@ -7,23 +7,23 @@ from bot_logging import log_user_info
 from firebase import db_create_room, user_join_room, enter_queue
 import re
 
-from handlers.room_welcome import welcome_room_state
+from handlers.room_welcome import welcome_room_state, welcome_room
 from keyboards.welcome_keyboard import get_welcome_kb
+from message_forms.welcome_form import get_owner_rooms_form
 from models.room import Room
+from roles.special_roles import check_access_level, GlobalRoles
 from states.room import RoomVisiterState
 from states.welcome import WelcomeState
 
 router = Router()
 
 
-def create_room_input_reg(input_text):
-    pattern = re.compile(r"[A-Za-z0-9]+#+", re.IGNORECASE)
-    return pattern.match(input_text)
-
-
-@router.message(F.text.lower() == "создать комнату" or Command("create"), WelcomeState.WELCOME_SCREEN)
+@router.message(F.text.lower() == "создать комнату", WelcomeState.WELCOME_SCREEN)
 async def create_room_state(message: types.Message, state: FSMContext):
-    await message.answer("Введите пароль для создания комнаты (пароль#имя_комнаты):")
+    has_access = await check_access_level(message.from_user.id, GlobalRoles.Teacher)
+    if not has_access:
+        return
+    await message.answer("Введите название комнаты:")
     await state.set_state(WelcomeState.CREATE_ROOM_SCREEN)
 
 
@@ -35,22 +35,16 @@ async def join_room_state(message: types.Message, state: FSMContext):
 
 @router.message(F.text, WelcomeState.CREATE_ROOM_SCREEN)
 async def create_room(message: types.Message, state: FSMContext):
-    if create_room_input_reg(message.text):
-        args = message.text.split('#')
-        result = await db_create_room(message.from_user.id, args[0], args[1])
-        is_room_created = 'room' in result
-        log_user_info(message.from_user.id, f'Try create room, name: {args[1]}, password: {args[0]}, result: {is_room_created}')
-        if is_room_created:
-            await message.answer(f"Вы создали комнату {args[1]}.")
-            await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
-            await welcome_room_state(message)
-        else:
-            await message.answer(f"Не получилось создать комнату. Ошибка: {result['error_text']}")
-            await state.set_state(WelcomeState.WELCOME_SCREEN)
+    result = await db_create_room(message.from_user.id, message.text)
+    is_room_created = 'room' in result
+    if is_room_created:
+        log_user_info(message.from_user.id, f'Try create room, name: {message.text}')
+        await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
+        await welcome_room(message)
     else:
-        keyboard = get_welcome_kb()
-        await message.answer("Не получилось создать комнату.", reply_markup=keyboard)
+        await message.answer(f"Не получилось создать комнату. Ошибка: {result['error_text']}")
         await state.set_state(WelcomeState.WELCOME_SCREEN)
+        await welcome_room(message)
 
 
 @router.message(F.text, WelcomeState.JOIN_ROOM_SCREEN)
