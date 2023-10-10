@@ -11,13 +11,10 @@ from handlers.room_welcome import welcome_room_state
 from keyboards.welcome_keyboard import get_welcome_kb
 from models.room import Room
 from states.room import RoomVisiterState
+from states.welcome import WelcomeState
 
 router = Router()
 
-class WelcomeState(StatesGroup):
-    WELCOME_SCREEN = State()
-    CREATE_ROOM_SCREEN = State()
-    JOIN_ROOM_SCREEN = State()
 
 def create_room_input_reg(input_text):
     pattern = re.compile(r"[A-Za-z0-9]+#+", re.IGNORECASE)
