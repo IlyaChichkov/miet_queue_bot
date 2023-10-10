@@ -12,7 +12,7 @@ from utils import generate_password, generate_code
 
 
 class Room:
-    def __init__(self, admin_id, name):
+    def __init__(self, name, admin_id = None):
         # Default values
         self.room_id = ''
         self.name = ''
@@ -28,7 +28,8 @@ class Room:
 
         # Set values
         self.name = name
-        self.admins.append(admin_id)
+        if admin_id:
+            self.admins.append(admin_id)
         self.moderators_join_code = generate_password(7)
         self.users_join_code = generate_code(4)
 
@@ -139,6 +140,7 @@ class Room:
         await (self.__update_database())
 
     async def __remove_user_task(self, user_id):
+        # if user_id not in self.admins:
         if user_id in self.queue:
             self.queue.remove(user_id)
         self.role_to_list(self.get_user_role(user_id)).remove(user_id)
@@ -153,6 +155,7 @@ class Room:
     async def __update_name_task(self, new_name):
         self.name = new_name
 
+    ''' GET USERS LIST '''
     def get_users_list(self):
         users = []
 
@@ -167,12 +170,16 @@ class Room:
 
         return users
 
+    ''' CHECK IF USER IN ADMINS LIST '''
     async def is_user_admin(self, user_id):
         role: UserRoles = self.get_user_role(user_id)
         if role != UserRoles.Admin:
             return False
         return True
 
+    ''' GET USERS COUNT '''
+    def get_users_count(self):
+        return len(self.get_users_list())
 
     ''' DELETE ROOM '''
     async def delete(self):
