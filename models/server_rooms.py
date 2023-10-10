@@ -37,10 +37,10 @@ async def get_room(room_id) -> Room:
 
 async def try_get_room_from_db(room_id) -> Room:
     rooms_ref = db.reference(f'/rooms/{room_id}')
-    return load_room_from_json(rooms_ref.get(), room_id)
+    return load_room_from_json(room_id, rooms_ref.get())
 
 
-def load_room_from_json(db_room, room_id) -> Room:
+def load_room_from_json(room_id, db_room) -> Room:
     if db_room is None:
         return None
     print(f">>> Load From Database <<<")
@@ -80,7 +80,7 @@ async def add_room(room: Room):
     server_rooms.append(room)
 
 
-async def remove_room(room_id: int):
+async def remove_room(room_id, user_id):
     logging.info(f'Removing room cache: {room_id}')
     rooms_to_remove = [room for room in server_rooms if room.id == room_id]
     server_rooms.remove(rooms_to_remove[0])
@@ -108,7 +108,7 @@ async def get_room_by_join_code(join_code, user_role):
         print(db_room_data.items())
         room_key, room_data = list(db_room_data.items())[0]
         print(room_key, room_data)
-        room = load_room_from_json(room_data, room_key)
+        room = load_room_from_json(room_key, room_data)
         print(room)
         if room:
             await add_room(room)
