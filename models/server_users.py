@@ -44,6 +44,10 @@ def load_user_from_json(user_key, user_data) -> User:
     user = User(user_data['name'])
     user.db_key = user_key
     user.set_user_id(user_data['tg_id'])
+
+    if 'own_rooms' in user_data:
+        user.owned_rooms = user_data['own_rooms']
+
     if 'room' in user_data:
         user.room = user_data['room']
 
