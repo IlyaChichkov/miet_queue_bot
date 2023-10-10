@@ -32,13 +32,6 @@ async def room_queue_show(message: types.Message, state: FSMContext):
     await queue_list_state(message)
 
 
-@router.message(IsAdmin(), F.text.lower() == "удалить комнату", RoomVisiterState.ROOM_WELCOME_SCREEN)
-async def room_delete_state(message: types.Message, state: FSMContext):
-    log_user_info(message.from_user.id, f'Deleted room.')
-    if await delete_room(message.from_user.id):
-        await start_command(message, state)
-
-
 @router.message(F.text.lower() == "выйти", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def room_exit_state(message: types.Message, state: FSMContext):
     await leave_room(message.from_user.id)
