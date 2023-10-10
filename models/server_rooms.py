@@ -6,6 +6,8 @@ from firebase_admin import db
 
 from events.queue_events import update_room_event, delete_room_event
 from models.room import Room
+from models.server_users import get_user
+from models.user import User
 
 server_rooms: List[Room] = []
 
@@ -46,7 +48,10 @@ def load_room_from_json(room_id, db_room) -> Room:
     print(f">>> Load From Database <<<")
     print(f"db room: ", db_room)
     print(f"ID: ", room_id)
-    room = Room(db_room['admins'][0], db_room['name'])
+    if 'admins' in db_room:
+        room = Room(db_room['name'], db_room['admins'][0])
+    else:
+        room = Room(db_room['name'])
     room.set_room_id(room_id)
     room.is_queue_enabled = db_room['queue_enabled']
     room.is_queue_on_join = db_room['queue_on_join']
@@ -65,12 +70,15 @@ def load_room_from_json(room_id, db_room) -> Room:
 async def create_room(user_id, room_name) -> Room:
     logging.info(f'Creating new room by USER_{user_id}. Room name: {room_name}')
 
-    room = Room(user_id, room_name)
+    user: User = await get_user(user_id)
+    room = Room(room_name, user_id)
 
     rooms_ref = db.reference('/rooms')
     room_ref = rooms_ref.push(room.to_dict())
     room.set_room_id(room_ref.key)
 
+    logging.info(f'Created: {room.to_dict()}')
+    await user.add_owned_room(room_ref.key)
     await add_room(room)
     return room
 
@@ -85,11 +93,14 @@ async def remove_room(room_id, user_id):
     rooms_to_remove = [room for room in server_rooms if room.room_id == room_id]
     room_to_remove = rooms_to_remove[0]
 
-    is_admin = await room_to_remove.is_user_admin()
+    is_admin = await room_to_remove.is_user_admin(user_id)
     if is_admin:
+        user: User = await get_user(user_id)
+        await user.remove_owned_room(room_id)
         await delete_room_event.fire(room_to_remove.get_users_list())
         await room_to_remove.delete()
         server_rooms.remove(room_to_remove)
+
 
 async def get_room_by_join_code(join_code, user_role):
     logging.info(f'Get room by join code\nCode:{join_code}')
