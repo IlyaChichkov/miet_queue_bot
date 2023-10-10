@@ -1,7 +1,7 @@
 import asyncio
 from dotenv import load_dotenv
 from bot import dp, bot
-from handlers import admin_commands, welcome, room_actions, assign_screen, profile_settings, room_settings, room_welcome, main_screens, queue_screen
+from handlers import admin_commands, own_rooms_handler, welcome, room_actions, assign_screen, profile_settings, room_settings, room_welcome, main_screens, queue_screen
 
 import models.server_users
 import models.server_rooms
@@ -15,6 +15,7 @@ load_dotenv()
 async def main():
     dp.include_routers(admin_commands.router)
     dp.include_routers(main_screens.router)
+    dp.include_routers(own_rooms_handler.router)
     dp.include_routers(welcome.router)
     dp.include_routers(profile_settings.router)
     dp.include_routers(room_settings.router)
