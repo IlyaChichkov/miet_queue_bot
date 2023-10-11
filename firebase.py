@@ -287,10 +287,10 @@ async def get_user_name(user_id):
     return user.name
 
 
-async def get_user_role_at_room(user_id):
+async def get_user_role_at_room(user_id) -> UserRoles:
     user: User = await get_user(user_id)
     room = await get_room_by_key(user.room)
-    return room.get_user_group(user_id)
+    return room.get_user_role(user_id)
 
 
 async def set_user_role(user_id, role):
