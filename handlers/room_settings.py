@@ -1,13 +1,21 @@
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
+from aiogram.types import InputFile, FSInputFile
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from pathlib import Path
 
 from bot_logging import log_user_info
 from firebase import change_room_auto_queue, get_user_room_key, change_room_name, is_autoqueue_enabled, delete_room
 from handlers.main_screens import start_command
 from handlers.room_actions import RoomVisiterState
 from handlers.room_welcome import welcome_room_state
+from models.note import export_study_notes
+from models.room import Room
+from models.server_rooms import get_room
+from models.server_users import get_user
+from models.user import User
 from roles.check_user_role import IsAdmin
+from datetime import date
 
 router = Router()
 
@@ -18,6 +26,10 @@ async def get_settings_kb(user_id):
     builder.row(
         types.KeyboardButton(text=f"Автоочередь ({await is_autoqueue_enabled(user_id)})"),
         types.KeyboardButton(text="Изменить название")
+    )
+
+    builder.row(
+        types.KeyboardButton(text='Экспорт заметок')
     )
 
     builder.row(
@@ -44,11 +56,31 @@ async def room_settings_state(message: types.Message, state: FSMContext):
     await message.answer("Автоочередь - вкл/выкл", reply_markup=kb)
 
 
-@router.message(IsAdmin(), F.text.lower() == "🗑️ удалить комнату", RoomVisiterState.ROOM_SETTINGS_SCREEN)
+@router.message(F.text.lower() == "🗑️ удалить комнату", RoomVisiterState.ROOM_SETTINGS_SCREEN)
 async def room_delete_state(message: types.Message, state: FSMContext):
     log_user_info(message.from_user.id, f'Deleted room.')
     if await delete_room(message.from_user.id):
         await start_command(message, state)
+
+
+@router.message(F.text.lower() == "экспорт заметок", RoomVisiterState.ROOM_SETTINGS_SCREEN)
+async def room_settings_state(message: types.Message, state: FSMContext):
+    user: User = await get_user(message.from_user.id)
+    room: Room = await get_room(user.room)
+    today = date.today()
+    csv_data = export_study_notes(room.study_notes, 'csv')
+
+    Path("./temp_files").mkdir(parents=True, exist_ok=True)
+    file_path = './temp_files/study_note_' + str(message.message_id) + '.csv'
+    with open(file_path, 'w+') as file:
+        file.write(csv_data)
+        print("FILE: ", csv_data)
+
+    send_file = FSInputFile(file_path, f'Заметки. Комната {room.name} {today}.csv')
+    await message.answer_document(send_file)
+
+    Path(file_path).unlink()
+    await room_settings(message)
 
 
 @router.message(F.text.lower() == "изменить название", RoomVisiterState.ROOM_SETTINGS_SCREEN)

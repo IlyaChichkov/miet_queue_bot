@@ -14,6 +14,9 @@ class User:
         self.global_role = ''
         self.owned_rooms = []
 
+        # Cache only
+        self.assigned_user_id = ''
+
         self.name = name
 
     async def check_global_role(self):
@@ -100,6 +103,5 @@ class User:
             "name": self.name,
             "current_role": self.current_role,
             "room": self.room,
-            "global_role": self.global_role, # TODO: Remove
             "own_rooms": self.owned_rooms
         }

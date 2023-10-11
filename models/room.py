@@ -5,6 +5,7 @@ from firebase_admin import db
 
 from bot_logging import log_database_update
 from events.queue_events import update_room_event
+from models.note import StudyNote
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles
@@ -25,6 +26,8 @@ class Room:
         self.users = []
 
         self.queue = []
+        # Cache only
+        self.study_notes: list[StudyNote] = []
 
         # Set values
         self.name = name
