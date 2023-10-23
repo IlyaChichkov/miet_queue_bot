@@ -176,29 +176,13 @@ async def get_queue_users(room_key):
 
 
 async def exit_queue(user_id):
-    if not await is_user_in_queue(user_id):
-        return False
-
     user: User = await get_user(user_id)
-    room_key = user.room
-    room = await get_room_by_key(room_key)
-    await room.queue_remove(user_id)
-    await update_queue_event.fire()
-    return True
+    await user.exit_queue()
 
 
 async def enter_queue(user_id):
-    if await is_user_in_queue(user_id):
-        return -1
-
     user: User = await get_user(user_id)
-    room_key = user.room
-
-    room = await get_room_by_key(room_key)
-    place = len(room.queue) + 1
-    await room.queue_add(user_id)
-    await update_queue_event.fire()
-    return place
+    return await user.enter_queue()
 
 
 async def is_autoqueue_enabled(user_id):

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from firebase_admin import db
-from events.queue_events import user_leave_event
+from events.queue_events import user_leave_event, update_queue_event
 
 
 class User:
@@ -78,6 +78,36 @@ class User:
 
     async def __set_room_task(self, room_id):
         self.room = room_id
+
+    ''' EXIT QUEUE '''
+    async def exit_queue(self):
+        await (self.__exit_queue_task())
+        await (self.__update_database())
+
+    async def __exit_queue_task(self):
+        from models.server_rooms import get_room
+        room = await get_room(self.room)
+        if room and self.user_id in room.queue:
+            print("EXIT ROOM ", room.name)
+            await room.queue_remove(self.user_id)
+            await update_queue_event.fire()
+        return True
+
+    ''' ENTER QUEUE '''
+    async def enter_queue(self):
+        queue_place = await (self.__enter_queue_task())
+        await (self.__update_database())
+        return queue_place
+
+    async def __enter_queue_task(self):
+        from models.server_rooms import get_room
+        room = await get_room(self.room)
+        if room and self.user_id in room.queue:
+            return -1
+        place = len(room.queue) + 1
+        await room.queue_add(self.user_id)
+        await update_queue_event.fire()
+        return place
 
     ''' LEAVE ROOM '''
     async def leave_room(self):
