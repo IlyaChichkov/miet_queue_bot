@@ -25,7 +25,7 @@ async def get_settings_kb(user_id):
     )
 
     role = await get_user_role_at_room(user_id)
-    if role is not UserRoles.User:
+    if role and role is not UserRoles.User:
         builder.row(types.KeyboardButton(text="Мои заметки"))
 
     builder.row(
