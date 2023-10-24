@@ -12,9 +12,7 @@ from models.user import User
 server_rooms: List[Room] = []
 
 async def get_room_where_user(user_id) -> Room:
-    print(f'>>> get room where user_{user_id}: \n')
-    for sr in server_rooms:
-        print(sr.room_id)
+    logging.info(f'Get room containing USER_{user_id}')
     room = [room for room in server_rooms if user_id in room.users or user_id in room.moderators or user_id in room.admins]
     if room and len(room) > 0:
         return room[0]
@@ -22,19 +20,21 @@ async def get_room_where_user(user_id) -> Room:
 
 
 async def get_room(room_id) -> Room:
+    logging.info(f'Get room ROOM_{room_id}')
     if room_id == '':
         return None
-    print(f'> get room {room_id}: \n', server_rooms)
     room = [room for room in server_rooms if room.room_id == room_id]
     if len(room) > 0:
-        print(f'> find in cache')
         return room[0]
     else:
-        print(f'> find in db')
+        logging.info(f'Try pooling from database')
         room = await try_get_room_from_db(room_id)
         if room:
+            logging.info(f'Room found - {room.name}')
             await add_room(room)
-        return room
+        else:
+            logging.warning(f'Room was not found in database!')
+            return None
 
 
 async def try_get_room_from_db(room_id) -> Room:
@@ -45,9 +45,6 @@ async def try_get_room_from_db(room_id) -> Room:
 def load_room_from_json(room_id, db_room) -> Room:
     if db_room is None:
         return None
-    print(f">>> Load From Database <<<")
-    print(f"db room: ", db_room)
-    print(f"ID: ", room_id)
     if 'admins' in db_room:
         room = Room(db_room['name'], db_room['admins'][0])
     else:
@@ -63,7 +60,7 @@ def load_room_from_json(room_id, db_room) -> Room:
         room.moderators = db_room['moderators']
     if 'admins' in db_room:
         room.admins = db_room['admins']
-    print(f"Loaded room from db: ", room)
+    logging.info(f'Loaded room from database')
     return room
 
 
@@ -84,12 +81,12 @@ async def create_room(user_id, room_name) -> Room:
 
 
 async def add_room(room: Room):
-    logging.info(f'Caching new room: {room.room_id}')
+    logging.info(f'Add new room to cache | ROOM_{room.room_id}')
     server_rooms.append(room)
 
 
 async def remove_room(room_id, user_id):
-    logging.info(f'Removing room cache: {room_id}')
+    logging.info(f'Removing ROOM_{room_id} by USER_{user_id}')
     rooms_to_remove = [room for room in server_rooms if room.room_id == room_id]
     room_to_remove = rooms_to_remove[0]
 
@@ -103,7 +100,7 @@ async def remove_room(room_id, user_id):
 
 
 async def get_room_by_join_code(join_code, user_role):
-    logging.info(f'Get room by join code\nCode:{join_code}')
+    logging.info(f'Get room by join code | Code:{join_code} | Role: {user_role}')
     role_to_room_code = {
         'user': 'join_code',
         'moderator': 'mod_password'
@@ -116,30 +113,25 @@ async def get_room_by_join_code(join_code, user_role):
         room = [room for room in server_rooms if room.moderators_join_code == join_code]
 
     if room and len(room) > 0:
-        print(f'> find in cache')
         return room[0]
     else:
-        print(f'> find in db')
+        logging.info(f'Try pooling from database')
         rooms_ref = db.reference('/rooms')
         db_room_data = rooms_ref.order_by_child(role_to_room_code[user_role]).equal_to(join_code).get()
-        print(db_room_data.items())
         room_key, room_data = list(db_room_data.items())[0]
-        print(room_key, room_data)
         room = load_room_from_json(room_key, room_data)
-        print(room)
         if room:
             await add_room(room)
         return room
 
 
 async def update_database_room_handler(room: Room):
+    logging.info(f'Update room in database | ROOM_{room.room_id}')
     if room.room_id == '':
         logging.error('Room in cache has empty ID!')
         return
 
-    logging.info('>>> async UPDATE DATABASE (Room) <<<')
     save_data = room.to_dict()
-    logging.info(save_data)
     rooms_ref = db.reference('/rooms')
     rooms_ref.child(room.room_id).set(save_data)
 
