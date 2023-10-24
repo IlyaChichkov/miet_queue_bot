@@ -12,11 +12,10 @@ async def get_owner_rooms_kb(user_id):
 
     for room_item in rooms_list:
         room = await get_room(room_item)
-        if room:
-            builder.row(
-                types.InlineKeyboardButton(text=room.name,
-                                           callback_data=f"connect_room#{room_item}")
-            )
+        builder.row(
+            types.InlineKeyboardButton(text=room.name,
+                                       callback_data=f"connect_room#{room_item}")
+        )
 
     return builder.as_markup()
 

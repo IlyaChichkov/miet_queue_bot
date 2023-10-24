@@ -32,7 +32,6 @@ async def get_room(room_id) -> Room:
         if room:
             logging.info(f'Room found - {room.name}')
             await add_room(room)
-            return room
         else:
             logging.warning(f'Room was not found in database!')
             return None
