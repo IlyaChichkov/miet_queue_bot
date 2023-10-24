@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from firebase_admin import db
-from events.queue_events import user_leave_event, update_queue_event
+from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event
 
 
 class User:
@@ -88,7 +88,6 @@ class User:
         from models.server_rooms import get_room
         room = await get_room(self.room)
         if room and self.user_id in room.queue:
-            print("EXIT ROOM ", room.name)
             await room.queue_remove(self.user_id)
             await update_queue_event.fire()
         return True
@@ -106,6 +105,7 @@ class User:
             return -1
         place = len(room.queue) + 1
         await room.queue_add(self.user_id)
+        await user_joined_queue_event.fire(room, self.user_id)
         await update_queue_event.fire()
         return place
 

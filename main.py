@@ -10,6 +10,7 @@ import models.server_rooms
 import events.queue_state_handler
 import events.user_join_handler
 import events.user_left_handler
+import events.user_join_queue_handler
 import bot_logging
 load_dotenv()
 
