@@ -130,7 +130,9 @@ async def user_join_room(user_id, room_code, user_role):
     try:
         room_key = await get_user_room_key(user_id)
         if room_key is not None:
-            if not await check_room_exist(room_key):
+            room_exits = await check_room_exist(room_key)
+            if not room_exits:
+                logging.warning(f"USER_{user_id} was connected to not existing room with id={room_key}!")
                 await set_user_room(user_id, '')
             else:
                 return {'error': "Connected to other room", 'error_text': 'Вы уже подключены к другой комнате' }
@@ -147,6 +149,7 @@ async def user_join_room(user_id, room_code, user_role):
             await set_user_role(user_id, role_to_room_list[user_role])
             await user_joined_event.fire(room, user_id, user_role)
             result = { 'room': room }
+            room_key = room.room_id
             logging.info(f'USER_{user_id} join ROOM_{room_key} ({room.name})')
             return result
 

@@ -77,6 +77,7 @@ class User:
         asyncio.create_task(self.__update_database())
 
     async def __set_room_task(self, room_id):
+        logging.info(f"Set USER_{self.user_id} room_id to ROOM_{room_id}")
         self.room = room_id
 
     ''' EXIT QUEUE '''
@@ -101,13 +102,15 @@ class User:
     async def __enter_queue_task(self):
         from models.server_rooms import get_room
         room = await get_room(self.room)
-        if room and self.user_id in room.queue:
-            return -1
-        place = len(room.queue) + 1
-        await room.queue_add(self.user_id)
-        await user_joined_queue_event.fire(room, self.user_id)
-        await update_queue_event.fire()
-        return place
+        if room:
+            if room and self.user_id in room.queue:
+                return -1
+            place = len(room.queue) + 1
+            await room.queue_add(self.user_id)
+            await user_joined_queue_event.fire(room, self.user_id)
+            await update_queue_event.fire()
+            return place
+        return None
 
     ''' LEAVE ROOM '''
     async def leave_room(self):
