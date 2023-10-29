@@ -201,6 +201,9 @@ async def delete_cache_messages(user_id):
 
 @router.message(F.text.lower() == "добавить примечание", RoomVisiterState.ROOM_ASSIGN_SCREEN)
 async def assigned_add_note(message: types.Message, state: FSMContext):
+    '''
+    Начало добавления примечания
+    '''
     await state.set_state(RoomVisiterState.ASSIGN_NOTE_SCREEN)
     form_message, form_kb = await get_assigned_add_note()
     await message.answer(form_message, reply_markup=form_kb, parse_mode="HTML")
@@ -226,10 +229,8 @@ async def assigned_note_added(message: types.Message, state: FSMContext):
 
     teacher_name = await get_user_name(user.user_id)
     pupil_name = await get_user_name(user.assigned_user_id)
-    room.study_notes.append(StudyNote(teacher_name, pupil_name, message.text))
-
-    form_message, form_kb = await get_assigned_add_note()
-    await message.answer(form_message, parse_mode="HTML")
+    room.study_notes.append(StudyNote(room.room_id, room.name, user.user_id, teacher_name, pupil_name, message.text))
+    await message.answer(f"Заметка добавлена!", parse_mode="HTML")
     # Выход на экран очереди
     await exit_assigned_queue(message, state)
 

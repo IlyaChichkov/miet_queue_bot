@@ -7,7 +7,7 @@ from firebase import change_user_name, get_user_name, db_get_user_room, get_user
 from handlers.main_screens import start_command
 from handlers.room_actions import RoomVisiterState
 from handlers.room_welcome import welcome_room_state
-from models.note import export_study_notes
+from models.note import export_study_notes, export_study_notes_by_user
 from models.room import Room
 from models.server_rooms import get_room
 from models.server_users import get_user
@@ -42,13 +42,13 @@ async def profile_settings_state(message: types.Message, state: FSMContext):
     await profile_settings(message)
 
 
-@router.message(IsAdmin() ,F.text.lower() == "мои заметки", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
-@router.message(IsModerator() ,F.text.lower() == "мои заметки", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
+@router.message(IsAdmin(), F.text.lower() == "мои заметки", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
+@router.message(IsModerator(), F.text.lower() == "мои заметки", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
 async def profile_notes(message: types.Message, state: FSMContext):
     user: User = await get_user(message.from_user.id)
     room: Room = await get_room(user.room)
 
-    message_data = export_study_notes(room.study_notes, 'message')
+    message_data = export_study_notes_by_user(room.study_notes, user.user_id)
     await message.answer(message_data, parse_mode="HTML")
     await profile_settings_state(message, state)
 
