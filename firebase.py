@@ -144,14 +144,14 @@ async def user_join_room(user_id, room_code, user_role):
                 await room.add_user(user_id, UserRoles.User)
             if user_role == 'moderator':
                 await room.add_user(user_id, UserRoles.Moderator)
-            await set_user_room(user_id, room.room_id)
 
-            await set_user_role(user_id, role_to_room_list[user_role])
-            await user_joined_event.fire(room, user_id, user_role)
-            result = { 'room': room }
             room_key = room.room_id
+            user: User = await get_user(user_id)
+            await user.set_room(room_key)
+            await user.update_role(role_to_room_list[user_role])
+            await user_joined_event.fire(room, user_id, user_role)
             logging.info(f'USER_{user_id} join ROOM_{room_key} ({room.name})')
-            return result
+            return { 'room': room }
 
         return { 'error': 'Room not found', 'error_text': 'Комната не найдена.' }
     except Exception as e:
@@ -202,7 +202,9 @@ async def is_user_in_queue(user_id):
 async def get_room_queue_enabled_by_userid(user_id) -> bool:
     user: User = await get_user(user_id)
     room: Room = await get_room(user.room)
-    return room.is_queue_enabled
+    if room:
+        return room.is_queue_enabled
+    return None
 
 
 async def get_room_queue_enabled(room_key) -> bool:
