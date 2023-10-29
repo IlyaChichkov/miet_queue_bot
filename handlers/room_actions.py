@@ -2,7 +2,7 @@ from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
 from bot_logging import log_user_info
-from firebase import delete_room, leave_room, enter_queue, exit_queue
+from firebase import delete_room, leave_room, enter_queue, exit_queue, try_enter_queue
 from handlers.main_screens import start_command
 from handlers.queue_screen import queue_list_state, queue_pop_call
 from handlers.room_welcome import welcome_room_state
@@ -41,9 +41,14 @@ async def room_exit_state(message: types.Message, state: FSMContext):
 
 @router.message(IsUser(), F.text.lower() == "занять место", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def room_queue_push(message: types.Message, state: FSMContext):
-    place = await enter_queue(message.from_user.id)
-    await message.answer(f"#️⃣ Ваше место в очереди: <b>№{place}</b>", parse_mode="HTML")
-    await welcome_room_state(message)
+    result = await try_enter_queue(message.from_user.id)
+    if 'place' in result:
+        await message.answer(f"#️⃣ Ваше место в очереди: <b>№{result['place']}</b>", parse_mode="HTML")
+        await welcome_room_state(message)
+
+    if 'error' in result:
+        await message.answer(f"{result['error_text']}", parse_mode="HTML")
+        await welcome_room_state(message)
 
 
 @router.message(IsUser(), F.text.lower() == "выйти из очереди", RoomVisiterState.ROOM_WELCOME_SCREEN)

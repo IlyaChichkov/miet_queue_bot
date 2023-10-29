@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import re
+
 from firebase_admin import db
 from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event
 
@@ -13,6 +15,8 @@ class User:
         self.room: str = ''
         self.global_role = ''
         self.owned_rooms = []
+
+        self.has_default_name = True
 
         # Cache only
         self.assigned_user_id = ''
@@ -45,12 +49,22 @@ class User:
         self.current_role = role
 
     ''' UPDATE NAME '''
+
+    def default_name_regular(self, input_text):
+        pattern = re.compile(r"User_[0-9]+", re.IGNORECASE)
+        return pattern.match(input_text)
+
+    def check_has_default_name(self):
+        self.has_default_name = self.default_name_regular(self.name)
+        return self.has_default_name
+
     async def update_name(self, new_name):
         self.__update_name_task(new_name)
         asyncio.create_task(self.__update_database())
 
     def __update_name_task(self, new_name):
         self.name = new_name
+        self.check_has_default_name()
 
     ''' ADD OWNED ROOM '''
     async def add_owned_room(self, room_id):

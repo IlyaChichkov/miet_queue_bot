@@ -71,4 +71,5 @@ async def create_user(user_id) -> User:
 
 async def add_user(user: User):
     logging.info(f'Caching USER_{user.user_id}')
+    user.check_has_default_name()
     server_users.append(user)

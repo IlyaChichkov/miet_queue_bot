@@ -181,6 +181,16 @@ async def exit_queue(user_id):
     await user.exit_queue()
 
 
+async def try_enter_queue(user_id):
+    user: User = await get_user(user_id)
+    if user.has_default_name:
+        return {'error': 'User has default name!', 'error_text': f'Нельзя присоединиться к очереди со стандартным именем - <b>{user.name}</b>!'}
+
+    logging.info(f'USER_{user_id} left queue')
+    place = await user.enter_queue()
+    return { 'place': place }
+
+
 async def enter_queue(user_id):
     user: User = await get_user(user_id)
     logging.info(f'USER_{user_id} left queue')
@@ -261,14 +271,9 @@ async def change_user_name(user_id, new_name):
         return False
 
 
-def default_name_regular(input_text):
-    pattern = re.compile(r"User_[0-9]+", re.IGNORECASE)
-    return pattern.match(input_text)
-
-
 async def is_user_name_default(user_id):
     user: User = await get_user(user_id)
-    return default_name_regular(user.name)
+    return user.has_default_name
 
 
 async def get_user_name(user_id):
