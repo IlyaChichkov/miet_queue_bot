@@ -7,6 +7,7 @@ from bot_logging import log_user_info
 from firebase import db_create_room, user_join_room, enter_queue
 import re
 
+from handlers.main_screens import start_command
 from handlers.room_welcome import welcome_room_state, welcome_room
 from keyboards.welcome_keyboard import get_welcome_kb
 from message_forms.welcome_form import get_owner_rooms_form
@@ -16,6 +17,10 @@ from states.room import RoomVisiterState
 from states.welcome import WelcomeState
 
 router = Router()
+
+@router.message(F.text.lower() == "вернуться в главное меню")
+async def create_room_state(message: types.Message, state: FSMContext):
+    await start_command(message, state)
 
 
 @router.message(F.text.lower() == "создать комнату", WelcomeState.WELCOME_SCREEN)
