@@ -199,7 +199,7 @@ async def delete_cache_messages(user_id):
     return False
 
 
-@router.message(F.text.lower() == "добавить примечание", RoomVisiterState.ROOM_ASSIGN_SCREEN)
+@router.message(F.text.lower() == "✏️ добавить примечание", RoomVisiterState.ROOM_ASSIGN_SCREEN)
 async def assigned_add_note(message: types.Message, state: FSMContext):
     '''
     Начало добавления примечания

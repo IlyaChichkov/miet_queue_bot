@@ -19,6 +19,6 @@ def get_assign_kb():
     )
 
     builder.row(
-        types.KeyboardButton(text="Добавить примечание"),
+        types.KeyboardButton(text="✏️ Добавить примечание"),
     )
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
