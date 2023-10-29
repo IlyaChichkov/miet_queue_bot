@@ -49,7 +49,7 @@ async def create_room(message: types.Message, state: FSMContext):
     else:
         await message.answer(f"Не получилось создать комнату. Ошибка: {result['error_text']}")
         await state.set_state(WelcomeState.WELCOME_SCREEN)
-        await welcome_room(message)
+        await start_command(message, state)
 
 
 @router.message(F.text, WelcomeState.JOIN_ROOM_SCREEN)
