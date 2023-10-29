@@ -94,6 +94,7 @@ async def remove_room(room_id, user_id):
     is_admin = await room_to_remove.is_user_admin(user_id)
     if is_admin:
         user: User = await get_user(user_id)
+        await delete_room_event.fire(room_to_remove.get_users_list())
         await user.remove_owned_room(room_id)
         await delete_room_event.fire(room_to_remove.get_users_list())
         await room_to_remove.delete()
