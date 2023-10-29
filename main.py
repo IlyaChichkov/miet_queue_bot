@@ -8,6 +8,7 @@ from handlers import admin_commands, own_rooms_handler, welcome, room_actions, a
 import models.server_users
 import models.server_rooms
 import events.queue_state_handler
+import events.room_delete_handler
 import events.user_join_handler
 import events.user_left_handler
 import events.user_join_queue_handler
