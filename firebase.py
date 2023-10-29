@@ -22,23 +22,19 @@ firebase_admin.initialize_app(cred, {
 async def get_room_by_key(room_key) -> Room:
     room = await get_room(room_key)
     if room:
-        print('Successfully got room from server data!', room)
         return room
     else:
-        print('Error getting room from server data!', room)
+        logging.warning(f'Null room return by room_id!')
         return None
 
 
 async def db_get_user_room(user_id):
-    print('Get user\'s room')
     try:
         room = await get_room_where_user(user_id)
         if room:
-            print('Successfully got room from server data!', room)
             return { 'room': room }
 
         user: User = await get_user(user_id)
-        print(f'>>> db_get_user_room: USER: {user.to_dict()}')
         if user.room == '':
             return { 'error': 'User has no connected room' }
 
@@ -62,7 +58,6 @@ async def check_room_exist(room_id):
 
 
 async def db_create_room(user_id, room_name):
-    print('Try create new room')
     try:
         room: Room = await create_room(user_id, room_name)
 
@@ -92,6 +87,7 @@ async def leave_room(user_id):
     user: User = await get_user(user_id)
     room_key = user.room
     room = await get_room_by_key(room_key)
+    logging.info(f'USER_{user_id} leave ROOM_{room_key} ({room.name})')
     await room.remove_user(user_id)
     return True
 
@@ -134,7 +130,9 @@ async def user_join_room(user_id, room_code, user_role):
     try:
         room_key = await get_user_room_key(user_id)
         if room_key is not None:
-            if not await check_room_exist(room_key):
+            room_exits = await check_room_exist(room_key)
+            if not room_exits:
+                logging.warning(f"USER_{user_id} was connected to not existing room with id={room_key}!")
                 await set_user_room(user_id, '')
             else:
                 return {'error': "Connected to other room", 'error_text': 'Вы уже подключены к другой комнате' }
@@ -151,6 +149,8 @@ async def user_join_room(user_id, room_code, user_role):
             await set_user_role(user_id, role_to_room_list[user_role])
             await user_joined_event.fire(room, user_id, user_role)
             result = { 'room': room }
+            room_key = room.room_id
+            logging.info(f'USER_{user_id} join ROOM_{room_key} ({room.name})')
             return result
 
         return { 'error': 'Room not found', 'error_text': 'Комната не найдена.' }
@@ -176,29 +176,15 @@ async def get_queue_users(room_key):
 
 
 async def exit_queue(user_id):
-    if not await is_user_in_queue(user_id):
-        return False
-
     user: User = await get_user(user_id)
-    room_key = user.room
-    room = await get_room_by_key(room_key)
-    await room.queue_remove(user_id)
-    await update_queue_event.fire()
-    return True
+    logging.info(f'USER_{user_id} entered queue')
+    await user.exit_queue()
 
 
 async def enter_queue(user_id):
-    if await is_user_in_queue(user_id):
-        return -1
-
     user: User = await get_user(user_id)
-    room_key = user.room
-
-    room = await get_room_by_key(room_key)
-    place = len(room.queue) + 1
-    await room.queue_add(user_id)
-    await update_queue_event.fire()
-    return place
+    logging.info(f'USER_{user_id} left queue')
+    return await user.enter_queue()
 
 
 async def is_autoqueue_enabled(user_id):
@@ -290,7 +276,9 @@ async def get_user_name(user_id):
 async def get_user_role_at_room(user_id) -> UserRoles:
     user: User = await get_user(user_id)
     room = await get_room_by_key(user.room)
-    return room.get_user_role(user_id)
+    if room:
+        return room.get_user_role(user_id)
+    return None
 
 
 async def set_user_role(user_id, role):

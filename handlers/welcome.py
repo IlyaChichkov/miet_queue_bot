@@ -7,6 +7,7 @@ from bot_logging import log_user_info
 from firebase import db_create_room, user_join_room, enter_queue
 import re
 
+from handlers.main_screens import start_command
 from handlers.room_welcome import welcome_room_state, welcome_room
 from keyboards.welcome_keyboard import get_welcome_kb
 from message_forms.welcome_form import get_owner_rooms_form
@@ -16,6 +17,10 @@ from states.room import RoomVisiterState
 from states.welcome import WelcomeState
 
 router = Router()
+
+@router.message(F.text.lower() == "вернуться в главное меню")
+async def create_room_state(message: types.Message, state: FSMContext):
+    await start_command(message, state)
 
 
 @router.message(F.text.lower() == "создать комнату", WelcomeState.WELCOME_SCREEN)
@@ -44,7 +49,7 @@ async def create_room(message: types.Message, state: FSMContext):
     else:
         await message.answer(f"Не получилось создать комнату. Ошибка: {result['error_text']}")
         await state.set_state(WelcomeState.WELCOME_SCREEN)
-        await welcome_room(message)
+        await start_command(message, state)
 
 
 @router.message(F.text, WelcomeState.JOIN_ROOM_SCREEN)
@@ -67,6 +72,10 @@ async def join_room(message: types.Message, state: FSMContext):
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
             await welcome_room_state(message)
         else:
+            # If already connected to the room: move to room lobby
+            if joined_room['error'] == 'Connected to other room':
+                await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
+                await welcome_room_state(message)
             await message.answer(f"Ошибка подключения к комнате. {joined_room['error_text']}")
             await state.set_state(WelcomeState.WELCOME_SCREEN)
     elif check_mod_code:
@@ -80,9 +89,13 @@ async def join_room(message: types.Message, state: FSMContext):
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
             await welcome_room_state(message)
         else:
+            # If already connected to the room: move to room lobby
+            if joined_room['error'] == 'Connected to other room':
+                await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
+                await welcome_room_state(message)
             await message.answer(f"Ошибка подключения к комнате. {joined_room['error_text']}")
             await state.set_state(WelcomeState.WELCOME_SCREEN)
     else:
-        keyboard = get_welcome_kb()
+        keyboard = await get_welcome_kb(message.from_user.id)
         await message.answer("Неверный код подключения.", reply_markup=keyboard)
         await state.set_state(WelcomeState.WELCOME_SCREEN)

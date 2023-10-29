@@ -20,9 +20,15 @@ async def notify_user_queue_switch(room_key, new_val):
     from aiogram.utils.keyboard import ReplyKeyboardBuilder
     builder = ReplyKeyboardBuilder()
 
-    builder.row(
-        types.KeyboardButton(text="Вернуться в меню"),
-    )
+    if new_val:
+        builder.row(
+            types.KeyboardButton(text="Занять место"),
+        )
+    else:
+        builder.row(
+            types.KeyboardButton(text="Вернуться в меню"),
+        )
+
     kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
     for user_num, user_in_queue in enumerate(room.users):
