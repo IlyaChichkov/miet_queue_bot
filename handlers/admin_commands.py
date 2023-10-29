@@ -11,6 +11,7 @@ from states.admin import AdminState
 router = Router()
 
 
+@router.message(F.text.lower() == "удалить кэш")
 @router.message(Command("delete_cache"))
 async def delete_server_cache(message: types.Message, state: FSMContext):
     has_access = await check_access_level(message.from_user.id, GlobalRoles.Developer)

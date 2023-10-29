@@ -72,6 +72,9 @@ async def get_welcome_kb(user_id):
         )
         builder.row(
             types.KeyboardButton(
+                text="Удалить кэш"
+            ),
+            types.KeyboardButton(
                 text="Добавить преподавателя"
             )
         )
