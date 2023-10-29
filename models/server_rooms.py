@@ -96,7 +96,6 @@ async def remove_room(room_id, user_id):
         user: User = await get_user(user_id)
         await delete_room_event.fire(room_to_remove.get_users_list())
         await user.remove_owned_room(room_id)
-        await delete_room_event.fire(room_to_remove.get_users_list())
         await room_to_remove.delete()
         server_rooms.remove(room_to_remove)
 
