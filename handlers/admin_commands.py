@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 from bot import bot
 from models.room import Room
-from models.server_admin import delete_cache, show_cache, update_cache, add_teacher
+from models.server_admin import delete_cache, show_cache, update_cache, add_teacher, get_cache_file
 from roles.special_roles import check_access_level, GlobalRoles
 from states.admin import AdminState
 
@@ -25,8 +25,7 @@ async def delete_server_cache(message: types.Message, state: FSMContext):
 async def show_server_cache(message: types.Message, state: FSMContext):
     has_access = await check_access_level(message.from_user.id, GlobalRoles.Developer)
     if has_access:
-        log_message = await show_cache()
-        await message.answer(log_message)
+        await get_cache_file(message)
 
 
 @router.message(F.text.lower() == "добавить преподавателя")
