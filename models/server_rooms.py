@@ -119,7 +119,10 @@ async def get_room_by_join_code(join_code, user_role):
         logging.info(f'Try pooling from database')
         rooms_ref = db.reference('/rooms')
         db_room_data = rooms_ref.order_by_child(role_to_room_code[user_role]).equal_to(join_code).get()
-        room_key, room_data = list(db_room_data.items())[0]
+        rooms_list = list(db_room_data.items())
+        if len(rooms_list) < 1:
+            return None
+        room_key, room_data = rooms_list[0]
         room = load_room_from_json(room_key, room_data)
         if room:
             await add_room(room)
