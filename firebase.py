@@ -200,8 +200,9 @@ async def is_user_in_queue(user_id):
 
 
 async def get_room_queue_enabled_by_userid(user_id) -> bool:
-    room_key = await get_user_room_key(user_id)
-    return await get_room_queue_enabled(room_key)
+    user: User = await get_user(user_id)
+    room: Room = await get_room(user.room)
+    return room.is_queue_enabled
 
 
 async def get_room_queue_enabled(room_key) -> bool:
