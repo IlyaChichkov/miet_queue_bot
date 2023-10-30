@@ -11,12 +11,12 @@ server_users: List[User] = []
 
 
 async def get_user(user_id) -> User:
-    user = [user for user in server_users if user.user_id == user_id]
+    logging.info(f'Get USER_{user_id}')
+    user = [user for user in server_users if str(user.user_id) == str(user_id)]
     if len(user) > 0:
-        print(f'> find user in cache')
         return user[0]
     else:
-        print(f'> find user in db')
+        logging.info(f'Try pooling user from database USER_{user_id}')
         user = await try_get_user_from_db(user_id)
         if user:
             await add_user(user)
@@ -57,9 +57,9 @@ def load_user_from_json(user_key, user_data) -> User:
 
 
 async def create_user(user_id) -> User:
-    logging.info(f'Creating new user')
     user = User(f'User_{generate_code(5)}')
     user.set_user_id(user_id)
+    logging.info(f'Add new user | USER_{user_id}')
 
     users_ref = db.reference('/users')
     user_ref = users_ref.push(user.to_dict())
@@ -70,5 +70,6 @@ async def create_user(user_id) -> User:
 
 
 async def add_user(user: User):
-    logging.info(f'Caching new user: {user.user_id}')
+    logging.info(f'Caching USER_{user.user_id}')
+    user.check_has_default_name()
     server_users.append(user)

@@ -8,8 +8,11 @@ class RoomVisiterState(StatesGroup):
     CHANGE_ROOM_NAME = State()
     # Queue screen
     ROOM_QUEUE_SCREEN = State()
+    ROOM_QUEUE_SETTINGS_SCREEN = State()
+    QUEUE_SETTINGS_REMOVE = State()
     # Assignment screen
     ROOM_ASSIGN_SCREEN = State()
+    ASSIGN_NOTE_SCREEN = State()
     # Profile settings
     PROFILE_SETTINGS_SCREEN = State()
     CHANGE_PROFILE_NAME = State()

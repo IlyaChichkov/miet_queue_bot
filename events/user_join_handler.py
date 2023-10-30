@@ -41,4 +41,4 @@ async def moderator_joined_notify(room, user_id):
         await bot.send_message(user_in_room, message_form, parse_mode="HTML")
 
 
-user_joined_event.add_handler(joined_notify)
+# user_joined_event.add_handler(joined_notify)

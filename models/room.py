@@ -4,7 +4,8 @@ import logging
 from firebase_admin import db
 
 from bot_logging import log_database_update
-from events.queue_events import update_room_event
+from events.queue_events import update_room_event, update_queue_event
+from models.note import StudyNote
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles
@@ -25,6 +26,8 @@ class Room:
         self.users = []
 
         self.queue = []
+        # Cache only
+        self.study_notes: list[StudyNote] = []
 
         # Set values
         self.name = name
@@ -107,10 +110,11 @@ class Room:
 
     ''' QUEUE REMOVE '''
     async def queue_remove(self, user_id):
-        await (self.queue_remove_task(user_id))
+        self.queue_remove_task(int(user_id))
         await update_room_event.fire(self)
+        await update_queue_event.fire()
 
-    async def queue_remove_task(self, user_id):
+    def queue_remove_task(self, user_id):
         self.queue.remove(user_id)
 
     ''' QUEUE CLEAR '''
@@ -143,6 +147,7 @@ class Room:
         # if user_id not in self.admins:
         if user_id in self.queue:
             self.queue.remove(user_id)
+            await update_queue_event.fire()
         self.role_to_list(self.get_user_role(user_id)).remove(user_id)
         user: User = await get_user(user_id)
         await user.leave_room()

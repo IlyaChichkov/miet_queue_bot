@@ -1,11 +1,29 @@
+import datetime
 import json
 import logging
 from typing import List
+
+from aiogram.types import FSInputFile
 from firebase_admin import db
+from pathlib import Path
 
 from models.server_passwords import server_passwords
 from models.server_rooms import server_rooms, load_room_from_json, add_room
-from models.server_users import server_users, load_user_from_json, add_user
+from models.server_users import server_users, load_user_from_json, add_user, get_user
+from models.user import User
+
+
+async def get_cache_file(message):
+    message_text = await show_cache()
+    Path("./temp_files").mkdir(parents=True, exist_ok=True)
+    file_path = './temp_files/server_cache.txt'
+    with open(file_path, 'w+') as file:
+        file.write(message_text)
+
+    send_file = FSInputFile(file_path, f'Кэш_сервера_{datetime.datetime.now().time().strftime("%H_%M_%S")}.txt')
+    await message.answer_document(send_file)
+    Path(file_path).unlink()
+    await message.answer("Готово!")
 
 
 async def show_cache():
@@ -47,6 +65,8 @@ async def add_teacher(teacher_id):
     global_roles = global_roles_ref.get()
     global_roles.update({teacher_id: 2})
     global_roles_ref.set(global_roles)
+    user: User = await get_user(teacher_id)
+    await user.check_global_role()
 
 
 async def update_cache():

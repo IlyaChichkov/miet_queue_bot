@@ -1,7 +1,9 @@
 import asyncio
 import logging
+import re
+
 from firebase_admin import db
-from events.queue_events import user_leave_event
+from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event
 
 
 class User:
@@ -13,6 +15,11 @@ class User:
         self.room: str = ''
         self.global_role = ''
         self.owned_rooms = []
+
+        self.has_default_name = True
+
+        # Cache only
+        self.assigned_user_id = ''
 
         self.name = name
 
@@ -35,19 +42,29 @@ class User:
 
     ''' UPDATE ROLE '''
     async def update_role(self, role):
-        asyncio.create_task(self.__update_role_task(role))
+        self.__update_role_task(role)
         asyncio.create_task(self.__update_database())
 
-    async def __update_role_task(self, role):
+    def __update_role_task(self, role):
         self.current_role = role
 
     ''' UPDATE NAME '''
+
+    def default_name_regular(self, input_text):
+        pattern = re.compile(r"User_[0-9]+", re.IGNORECASE)
+        return pattern.match(input_text)
+
+    def check_has_default_name(self):
+        self.has_default_name = self.default_name_regular(self.name)
+        return self.has_default_name
+
     async def update_name(self, new_name):
-        asyncio.create_task(self.__update_name_task(new_name))
+        self.__update_name_task(new_name)
         asyncio.create_task(self.__update_database())
 
-    async def __update_name_task(self, new_name):
+    def __update_name_task(self, new_name):
         self.name = new_name
+        self.check_has_default_name()
 
     ''' ADD OWNED ROOM '''
     async def add_owned_room(self, room_id):
@@ -70,11 +87,44 @@ class User:
 
     ''' SET ROOM '''
     async def set_room(self, room_id):
-        asyncio.create_task(self.__set_room_task(room_id))
+        self.__set_room_task(room_id)
         asyncio.create_task(self.__update_database())
 
-    async def __set_room_task(self, room_id):
+    def __set_room_task(self, room_id):
+        logging.info(f"Set USER_{self.user_id} room_id to ROOM_{room_id}")
         self.room = room_id
+
+    ''' EXIT QUEUE '''
+    async def exit_queue(self):
+        await (self.__exit_queue_task())
+        await (self.__update_database())
+
+    async def __exit_queue_task(self):
+        from models.server_rooms import get_room
+        room = await get_room(self.room)
+        if room and self.user_id in room.queue:
+            await room.queue_remove(self.user_id)
+            await update_queue_event.fire()
+        return True
+
+    ''' ENTER QUEUE '''
+    async def enter_queue(self):
+        queue_place = await (self.__enter_queue_task())
+        await (self.__update_database())
+        return queue_place
+
+    async def __enter_queue_task(self):
+        from models.server_rooms import get_room
+        room = await get_room(self.room)
+        if room:
+            if room and self.user_id in room.queue:
+                return -1
+            place = len(room.queue) + 1
+            await room.queue_add(self.user_id)
+            await user_joined_queue_event.fire(room, self.user_id)
+            await update_queue_event.fire()
+            return place
+        return None
 
     ''' LEAVE ROOM '''
     async def leave_room(self):
@@ -100,6 +150,5 @@ class User:
             "name": self.name,
             "current_role": self.current_role,
             "room": self.room,
-            "global_role": self.global_role, # TODO: Remove
             "own_rooms": self.owned_rooms
         }
