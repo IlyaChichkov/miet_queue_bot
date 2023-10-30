@@ -153,8 +153,6 @@ async def queue_list_send(message: types.Message, user_id = None):
     log_user_info(user_id, f'Drawing queue list screen to user.')
 
     main_form, mf_kb = await get_queue_main_form(user_id)
-    print(main_form)
-    print(mf_kb)
     title_message = await message.answer(main_form, reply_markup=mf_kb)
     form_message, form_kb = await get_queue_list_mesg(user_id)
     queue_message = await message.answer(form_message, reply_markup=form_kb)
