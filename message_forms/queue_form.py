@@ -41,12 +41,14 @@ async def get_queue_main_form(user_id):
 
         builder.row(types.KeyboardButton(text=f"{queue_state_to_msg[queue_state]} очередь"),
         types.KeyboardButton(text=f"Принять первого"))
+        builder.row(types.KeyboardButton(text="Настройки очереди"))
         builder.row(types.KeyboardButton(text="Назад"))
 
         mf_kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
         return main_form, mf_kb
     else:
-        builder.row(types.KeyboardButton(text=f"Принять первого"))
+        builder.row(types.KeyboardButton(text="Настройки очереди"),
+                    types.KeyboardButton(text=f"Принять первого"))
         builder.row(types.KeyboardButton(text="Назад"))
 
         mf_kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)

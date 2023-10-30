@@ -110,10 +110,11 @@ class Room:
 
     ''' QUEUE REMOVE '''
     async def queue_remove(self, user_id):
-        await (self.queue_remove_task(user_id))
+        self.queue_remove_task(int(user_id))
         await update_room_event.fire(self)
+        await update_queue_event.fire()
 
-    async def queue_remove_task(self, user_id):
+    def queue_remove_task(self, user_id):
         self.queue.remove(user_id)
 
     ''' QUEUE CLEAR '''
