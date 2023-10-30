@@ -12,7 +12,7 @@ server_users: List[User] = []
 
 async def get_user(user_id) -> User:
     logging.info(f'Get USER_{user_id}')
-    user = [user for user in server_users if user.user_id == user_id]
+    user = [user for user in server_users if str(user.user_id) == str(user_id)]
     if len(user) > 0:
         return user[0]
     else:
