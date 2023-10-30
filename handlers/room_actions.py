@@ -45,10 +45,15 @@ async def room_queue_push(message: types.Message, state: FSMContext):
     if 'place' in result:
         await message.answer(f"#️⃣ Ваше место в очереди: <b>№{result['place']}</b>", parse_mode="HTML")
         await welcome_room_state(message)
+        return
 
     if 'error' in result:
         await message.answer(f"{result['error_text']}", parse_mode="HTML")
         await welcome_room_state(message)
+        return
+
+    await message.answer(f"{result}", parse_mode="HTML")
+    await welcome_room_state(message)
 
 
 @router.message(IsUser(), F.text.lower() == "выйти из очереди", RoomVisiterState.ROOM_WELCOME_SCREEN)
