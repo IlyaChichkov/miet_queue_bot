@@ -61,6 +61,8 @@ def load_room_from_json(room_id, db_room) -> Room:
         room.moderators = db_room['moderators']
     if 'admins' in db_room:
         room.admins = db_room['admins']
+    if 'queue' in db_room:
+        room.queue = db_room['queue']
     logging.info(f'Loaded room from database')
     return room
 
