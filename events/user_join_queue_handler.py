@@ -9,9 +9,17 @@ from models.server_users import get_user
 from models.user import User
 
 
-async def joined_notify(room, user_id):
-    print('queue join notify')
+async def joined_notify(room, user_id, place):
     await moderator_notify(room, user_id)
+    await user_notify(room, user_id, place)
+
+
+async def user_notify(room, user_id, place):
+    try:
+        message = f"Вы присоединились к очереди!\n#️⃣ Ваше место в очереди: <b>{place}</b>"
+        await bot.send_message(user_id, message, parse_mode="HTML")
+    except Exception as ex:
+        logging.info(f"Tried to notify USER_{user_id} (user) about queue join, but got error: {ex}")
 
 
 async def moderator_notify(room, user_id):
@@ -36,4 +44,3 @@ async def moderator_notify(room, user_id):
 
 
 user_joined_queue_event.add_handler(joined_notify)
-

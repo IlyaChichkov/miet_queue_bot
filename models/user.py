@@ -121,7 +121,7 @@ class User:
                 return -1
             place = len(room.queue) + 1
             await room.queue_add(self.user_id)
-            await user_joined_queue_event.fire(room, self.user_id)
+            await user_joined_queue_event.fire(room, self.user_id, place)
             await update_queue_event.fire()
             return place
         return None
