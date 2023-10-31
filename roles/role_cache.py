@@ -20,10 +20,12 @@ async def get_user_role(user_id):
 
 
 async def cache_user_role(user_id, role):
+    logging.info(f'Cache user role for: {user_id} as {role}')
     users_role_cache[user_id] = role
 
 
 async def delete_user_role_cache(user_id):
+    logging.info(f'Delete role cache for: {user_id}')
     if user_id in users_role_cache:
         users_role_cache.pop(user_id)
     else:
