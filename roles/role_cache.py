@@ -12,7 +12,8 @@ async def get_user_role(user_id):
         role = users_role_cache[user_id]
     else:
         role = await get_user_current_role(user_id)
-        await cache_user_role(user_id, role)
+        if role != '':
+            await cache_user_role(user_id, role)
 
     logging.info(f'Check USER_{user_id} current role: {role}. Cached: {is_cached}.')
     return role
