@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import types
 
 from bot import bot
@@ -20,13 +22,17 @@ async def moderator_notify(room, user_id):
 
     message_form = f'«<b>{user.name}</b>» присоединился к очереди'
 
-    print(user_id)
     for user_num, user_in_room in enumerate(room.moderators):
-        await bot.send_message(user_in_room, message_form, parse_mode="HTML")
+        try:
+            await bot.send_message(user_in_room, message_form, parse_mode="HTML")
+        except Exception as ex:
+            logging.info(f"Tried to notify USER_{user_id} (moderator) about queue join, but got error: {ex}")
 
     for user_num, user_in_room in enumerate(room.admins):
-        print(user_in_room)
-        await bot.send_message(user_in_room, message_form, parse_mode="HTML")
+        try:
+            await bot.send_message(user_in_room, message_form, parse_mode="HTML")
+        except Exception as ex:
+            logging.info(f"Tried to notify USER_{user_id} (admin) about queue join, but got error: {ex}")
 
 
 user_joined_queue_event.add_handler(joined_notify)
