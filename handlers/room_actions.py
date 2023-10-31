@@ -6,7 +6,7 @@ from firebase import delete_room, leave_room, enter_queue, exit_queue, try_enter
 from handlers.main_screens import start_command
 from handlers.queue_screen import queue_list_state, queue_pop_call
 from handlers.room_welcome import welcome_room_state
-from message_forms.room_forms import get_users_list_form
+from message_forms.room_forms import get_users_list_form, get_join_queue_form
 from roles.check_user_role import IsModerator, IsAdmin, IsUser
 from states.room import RoomVisiterState
 
@@ -41,18 +41,8 @@ async def room_exit_state(message: types.Message, state: FSMContext):
 
 @router.message(IsUser(), F.text.lower() == "занять место", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def room_queue_push(message: types.Message, state: FSMContext):
-    result = await try_enter_queue(message.from_user.id)
-    if 'place' in result:
-        await message.answer(f"#️⃣ Ваше место в очереди: <b>№{result['place']}</b>", parse_mode="HTML")
-        await welcome_room_state(message)
-        return
-
-    if 'error' in result:
-        await message.answer(f"{result['error_text']}", parse_mode="HTML")
-        await welcome_room_state(message)
-        return
-
-    await message.answer(f"{result}", parse_mode="HTML")
+    message_text = await get_join_queue_form(message.from_user.id)
+    await message.answer(message_text, parse_mode="HTML")
     await welcome_room_state(message)
 
 

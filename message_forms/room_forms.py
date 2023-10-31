@@ -1,4 +1,4 @@
-from firebase import db_get_user_room
+from firebase import db_get_user_room, try_enter_queue
 from keyboards.room_keyboard import *
 from models.room import Room
 from models.server_users import get_user
@@ -18,6 +18,15 @@ def get_user_role_in_room(user_id, room):
         return UserRoles.Moderator
     if 'admins' in room and user_id in room['admins']:
         return UserRoles.Admin
+
+
+async def get_join_queue_form(user_id):
+    result = await try_enter_queue(user_id)
+
+    if 'error' in result:
+        return f"{result['error_text']}"
+
+    return f"{result['error_text']}"
 
 
 async def get_welcome_message(user_id, room: Room):
