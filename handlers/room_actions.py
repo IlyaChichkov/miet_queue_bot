@@ -2,15 +2,37 @@ from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
 from bot_logging import log_user_info
-from firebase import delete_room, leave_room, enter_queue, exit_queue, try_enter_queue
+from events.room_announcement_handler import send_public_announcement
+from firebase import leave_room, exit_queue
 from handlers.main_screens import start_command
 from handlers.queue_screen import queue_list_state, queue_pop_call
 from handlers.room_welcome import welcome_room_state
-from message_forms.room_forms import get_users_list_form, get_join_queue_form
+from message_forms.room_forms import get_users_list_form, get_join_queue_form, get_announcement_form
 from roles.check_user_role import IsModerator, IsAdmin, IsUser
 from states.room import RoomVisiterState
 
 router = Router()
+
+
+@router.message(F.text.lower() == "назад", RoomVisiterState.MAKE_ANNOUNCEMENT_SCREEN)
+async def exit_announcement(message: types.Message, state: FSMContext):
+    await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
+    await welcome_room_state(message)
+
+
+@router.message(IsAdmin(), F.text.lower() == "сделать уведомление", RoomVisiterState.ROOM_WELCOME_SCREEN)
+async def make_announcement(message: types.Message, state: FSMContext):
+    await state.set_state(RoomVisiterState.MAKE_ANNOUNCEMENT_SCREEN)
+    form_message, form_kb = await get_announcement_form(message.from_user.id)
+    await message.answer(form_message, reply_markup=form_kb, parse_mode="HTML")
+
+
+@router.message(RoomVisiterState.MAKE_ANNOUNCEMENT_SCREEN)
+async def send_announcement(message: types.Message, state: FSMContext):
+    await send_public_announcement(message.from_user.id, message.text)
+    await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
+    await welcome_room_state(message)
+
 
 @router.message(IsAdmin(), F.text.lower() == "список пользователей", RoomVisiterState.ROOM_WELCOME_SCREEN)
 @router.message(IsModerator(), F.text.lower() == "список пользователей", RoomVisiterState.ROOM_WELCOME_SCREEN)
@@ -42,7 +64,7 @@ async def room_exit_state(message: types.Message, state: FSMContext):
 @router.message(IsUser(), F.text.lower() == "занять место", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def room_queue_push(message: types.Message, state: FSMContext):
     message_text = await get_join_queue_form(message.from_user.id)
-    await message.answer(message_text, parse_mode="HTML")
+    # await message.answer(message_text, parse_mode="HTML")
     await welcome_room_state(message)
 
 

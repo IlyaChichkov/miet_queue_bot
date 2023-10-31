@@ -1,6 +1,7 @@
 from firebase import db_get_user_room, try_enter_queue
 from keyboards.room_keyboard import *
 from models.room import Room
+from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles
@@ -26,7 +27,7 @@ async def get_join_queue_form(user_id):
     if 'error' in result:
         return f"{result['error_text']}"
 
-    return f"{result['error_text']}"
+    return f""
 
 
 async def get_welcome_message(user_id, room: Room):
@@ -77,4 +78,17 @@ async def get_users_list_form(user_id):
         for num, ruser in enumerate(room.users):
             form_message += f'{num + 1}. <b>{await get_username(ruser)}</b>\n'
 
+    return form_message, form_kb
+
+
+async def get_announcement_form(user_id):
+    builder = ReplyKeyboardBuilder()
+
+    builder.row(
+        types.KeyboardButton(
+            text="Назад"
+        )
+    )
+    form_kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+    form_message = 'Введите текст общего уведомления:'
     return form_message, form_kb

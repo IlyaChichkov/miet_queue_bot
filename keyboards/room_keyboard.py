@@ -13,7 +13,10 @@ async def get_admin_welcome_kb(user_id):
     )
 
     builder.row(types.KeyboardButton(text="Настройки комнаты"))
-    builder.row(types.KeyboardButton(text="Список пользователей"))
+    builder.row(
+        types.KeyboardButton(text="Сделать уведомление"),
+        types.KeyboardButton(text="Список пользователей")
+    )
 
     builder.row(
         types.KeyboardButton(
