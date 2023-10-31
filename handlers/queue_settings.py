@@ -61,16 +61,24 @@ async def queue_remove_user(callback: CallbackQuery, state: FSMContext):
     queue_remove_user_id = callback.data.split('_')[2]
     init_user_id = callback.data.split('_')[3]
     init_user: User = await get_user(str(init_user_id))
+    removed_user: User = await get_user(str(queue_remove_user_id))
     room: Room = await get_room(init_user.room)
     await room.queue_remove(queue_remove_user_id)
 
-    from aiogram.utils.keyboard import ReplyKeyboardBuilder
     builder = ReplyKeyboardBuilder()
     builder.row(
-        types.KeyboardButton(text="Вернуться в меню"),
+        types.KeyboardButton(text="Вернуться в меню")
     )
     kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
-    await bot.send_message(queue_remove_user_id, f'{init_user.name} убрал вас из очереди.',  reply_markup=kb, parse_mode="HTML")
+    try:
+        await bot.send_message(queue_remove_user_id, f'<b>{init_user.name}</b> убрал вас из очереди.',  reply_markup=kb, parse_mode="HTML")
+    except Exception as ex:
+        logging.info(f"Tried to notify USER_{queue_remove_user_id} (user) about being removed from queue, but got error: {ex}")
+
+    try:
+        await bot.send_message(init_user_id, f'Вы убрали пользователя <b>{removed_user.name}</b> из очереди.', parse_mode="HTML")
+    except Exception as ex:
+        logging.info(f"Tried to notify USER_{init_user_id} about successful user remove from queue, but got error: {ex}")
 
 
 @router.message(F.text.lower() == "назад", RoomVisiterState.ROOM_QUEUE_SETTINGS_SCREEN)
