@@ -193,7 +193,7 @@ async def try_enter_queue(user_id):
 
 async def enter_queue(user_id):
     user: User = await get_user(user_id)
-    logging.info(f'USER_{user_id} left queue')
+    logging.info(f'USER_{user_id} entered queue')
     return await user.enter_queue()
 
 
