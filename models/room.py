@@ -120,6 +120,7 @@ class Room:
     ''' QUEUE CLEAR '''
     async def queue_clear(self):
         await (self.queue_clear_task())
+        await update_queue_event.fire()
         await update_room_event.fire(self)
 
     async def queue_clear_task(self):
