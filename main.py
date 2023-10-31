@@ -12,6 +12,7 @@ import events.room_delete_handler
 import events.user_join_handler
 import events.user_left_handler
 import events.user_join_queue_handler
+import events.update_queue_handler
 import bot_logging
 load_dotenv()
 

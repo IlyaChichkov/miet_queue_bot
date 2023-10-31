@@ -112,15 +112,16 @@ class Room:
     async def queue_remove(self, user_id):
         self.queue_remove_task(int(user_id))
         await update_room_event.fire(self)
-        await update_queue_event.fire()
+        await update_queue_event.fire(self.room_id)
 
     def queue_remove_task(self, user_id):
-        self.queue.remove(user_id)
+        if user_id in self.queue:
+            self.queue.remove(user_id)
 
     ''' QUEUE CLEAR '''
     async def queue_clear(self):
         await (self.queue_clear_task())
-        await update_queue_event.fire()
+        await update_queue_event.fire(self.room_id)
         await update_room_event.fire(self)
 
     async def queue_clear_task(self):
@@ -148,7 +149,7 @@ class Room:
         # if user_id not in self.admins:
         if user_id in self.queue:
             self.queue.remove(user_id)
-            await update_queue_event.fire()
+            await update_queue_event.fire(self.room_id)
         self.role_to_list(self.get_user_role(user_id)).remove(user_id)
         user: User = await get_user(user_id)
         await user.leave_room()

@@ -25,6 +25,10 @@ router = Router()
 
 queue_view_update = {}
 
+async def update_queue_handler(room_id):
+    await update_list_for_users()
+
+
 async def update_list_for_users():
     '''
     Обновление списка с очередью для всех модераторов/админа
@@ -48,7 +52,7 @@ async def update_list_for_users():
 
 
 username_changed_event.add_handler(update_list_for_users)
-update_queue_event.add_handler(update_list_for_users)
+update_queue_event.add_handler(update_queue_handler)
 
 
 @router.message(IsAdmin(), F.text.lower() == "⛔ выключить очередь")

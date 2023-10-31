@@ -104,7 +104,7 @@ class User:
         room = await get_room(self.room)
         if room and self.user_id in room.queue:
             await room.queue_remove(self.user_id)
-            await update_queue_event.fire()
+            await update_queue_event.fire(room.room_id)
         return True
 
     ''' ENTER QUEUE '''
@@ -122,7 +122,7 @@ class User:
             place = len(room.queue) + 1
             await room.queue_add(self.user_id)
             await user_joined_queue_event.fire(room, self.user_id, place)
-            await update_queue_event.fire()
+            await update_queue_event.fire(room.room_id)
             return place
         return None
 
