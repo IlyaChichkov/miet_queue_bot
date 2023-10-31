@@ -45,6 +45,13 @@ async def queue_settings(message: types.Message, state: FSMContext):
 @router.message(F.text.lower() == "удалить из очереди", RoomVisiterState.ROOM_QUEUE_SETTINGS_SCREEN)
 async def queue_remove_state(message: types.Message, state: FSMContext):
     await state.set_state(RoomVisiterState.QUEUE_SETTINGS_REMOVE)
+
+    builder = ReplyKeyboardBuilder()
+    builder.row(
+        types.KeyboardButton(text="Назад")
+    )
+    kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=False)
+    await message.answer("Удаление из очереди", reply_markup=kb)
     await queue_remove(message, state)
 
 
