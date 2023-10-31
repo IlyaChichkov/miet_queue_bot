@@ -4,6 +4,7 @@ from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
+from firebase import generate_random_queue
 from handlers.queue_screen import queue_list_state, delete_cache_messages
 from models.room import Room
 from models.server_rooms import get_room
@@ -15,6 +16,22 @@ from states.room import RoomVisiterState
 from bot import bot
 
 router = Router()
+
+
+@router.message(IsAdmin(), F.text.lower() == "сгенерировать случайную очередь")
+async def queue_settings(message: types.Message, state: FSMContext):
+    import random
+    user: User = await get_user(message.from_user.id)
+    room: Room = await get_room(user.room)
+    users_list = room.users[:]
+    random.shuffle(users_list)
+    await generate_random_queue(user.room, users_list)
+    message_text = ''
+    for i, queue_user_id in enumerate(users_list):
+        queue_user: User = await get_user(queue_user_id)
+        message_text += f'{i + 1}. {queue_user.name}\n'
+    await message.answer(f"<b>Случайный список:</b>\n{message_text}", parse_mode="HTML")
+
 
 @router.message(IsAdmin(), F.text.lower() == "настройки очереди")
 @router.message(IsModerator(), F.text.lower() == "настройки очереди")

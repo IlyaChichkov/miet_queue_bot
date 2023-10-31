@@ -232,6 +232,15 @@ async def get_user_role(user_id):
     return user_role
 
 
+async def generate_random_queue(room_id, queue_list):
+    room: Room = await get_room(room_id)
+    await room.queue_clear()
+
+    for add_user in queue_list:
+        user: User = await get_user(add_user)
+        await user.enter_queue()
+
+
 async def switch_room_queue_enabled(user_id):
     room_key = await get_user_room_key(user_id)
     room = await get_room_by_key(room_key)
