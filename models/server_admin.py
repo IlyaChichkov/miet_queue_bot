@@ -31,13 +31,13 @@ async def show_cache():
     for num, room in enumerate(server_rooms):
         r = json.dumps(room.to_dict())
         loaded_r = json.loads(r)
-        message += f' {num+1}) {json.dumps(loaded_r, indent=2)}\n'
+        message += f' {num+1}) {json.dumps(loaded_r, indent=2, ensure_ascii=False)}\n'
 
     message += 'Users:\n'
     for num, user in enumerate(server_users):
         r = json.dumps(user.to_dict())
         loaded_r = json.loads(r)
-        message += f' {num+1}) {json.dumps(loaded_r, indent=2)}\n'
+        message += f' {num+1}) {json.dumps(loaded_r, indent=2, ensure_ascii=False)}\n'
 
     return message
 
