@@ -232,6 +232,7 @@ async def assigned_note_added(message: types.Message, state: FSMContext):
     teacher_name = await get_user_name(user.user_id)
     pupil_name = await get_user_name(user.assigned_user_id)
     room.study_notes.append(StudyNote(room.room_id, room.name, user.user_id, teacher_name, pupil_name, message.text))
+    logging.info(f'Note was added by {user.user_id} to {user.assigned_user_id}\nNote: {message.text}')
     await message.answer(f"Заметка добавлена!", parse_mode="HTML")
     # Выход на экран очереди
     await exit_assigned_queue(message, state)

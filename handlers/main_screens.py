@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import Router, F, types
 from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile
 from aiogram.filters import Command, StateFilter
@@ -65,5 +67,6 @@ async def start_command(message: types.Message, state: FSMContext):
         "https://i.postimg.cc/MpCGsd4H/1.png"
     )
     '''
+    logging.info(f'MAIN SCREEN | USER_{user.user_id} | {message.from_user.username}')
     form_message, form_kb = await get_welcome_form(message.from_user.first_name, message.from_user.id)
     await message.answer_photo(start_image, form_message, reply_markup=form_kb)

@@ -1,3 +1,5 @@
+import logging
+
 from firebase import db_get_user_room, try_enter_queue
 from keyboards.room_keyboard import *
 from models.room import Room
@@ -78,6 +80,7 @@ async def get_users_list_form(user_id):
         for num, ruser in enumerate(room.users):
             form_message += f'{num + 1}. <b>{await get_username(ruser)}</b>\n'
 
+    logging.info(f'USER_{user_id} requested users list')
     return form_message, form_kb
 
 

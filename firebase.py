@@ -24,7 +24,7 @@ async def get_room_by_key(room_key) -> Room:
     if room:
         return room
     else:
-        logging.warning(f'Null room return by room_id!')
+        logging.warning(f'Null room return by room_id! ROOM_{room_key}')
         return None
 
 

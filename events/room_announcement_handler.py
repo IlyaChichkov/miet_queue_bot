@@ -11,6 +11,7 @@ async def send_public_announcement(user_id, message_text):
     room: Room = await get_room(user.room)
     room_users_list = room.get_users_list()
     users_count = len(room_users_list)
+    logging.info(f'Making public announcement in ROOM_{user.room}\nAnnouncement message: «{message_text}»')
     for room_user in room_users_list:
         if str(room_user) == str(user_id):
             try:
