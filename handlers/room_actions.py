@@ -22,6 +22,9 @@ async def exit_announcement(message: types.Message, state: FSMContext):
 
 @router.message(IsAdmin(), F.text.lower() == "сделать уведомление", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def make_announcement(message: types.Message, state: FSMContext):
+    '''
+    Создание уведомления для всех участников комнаты
+    '''
     await state.set_state(RoomVisiterState.MAKE_ANNOUNCEMENT_SCREEN)
     form_message, form_kb = await get_announcement_form(message.from_user.id)
     await message.answer(form_message, reply_markup=form_kb, parse_mode="HTML")
@@ -29,6 +32,9 @@ async def make_announcement(message: types.Message, state: FSMContext):
 
 @router.message(RoomVisiterState.MAKE_ANNOUNCEMENT_SCREEN)
 async def send_announcement(message: types.Message, state: FSMContext):
+    '''
+    Отправка уведомления
+    '''
     await send_public_announcement(message.from_user.id, message.text)
     await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
     await welcome_room_state(message)

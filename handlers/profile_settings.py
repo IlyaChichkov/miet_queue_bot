@@ -45,6 +45,9 @@ async def profile_settings_state(message: types.Message, state: FSMContext):
 @router.message(IsAdmin(), F.text.lower() == "мои заметки", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
 @router.message(IsModerator(), F.text.lower() == "мои заметки", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
 async def profile_notes(message: types.Message, state: FSMContext):
+    '''
+    Отображение заметок преподавателя
+    '''
     user: User = await get_user(message.from_user.id)
     room: Room = await get_room(user.room)
 
@@ -55,6 +58,9 @@ async def profile_notes(message: types.Message, state: FSMContext):
 
 @router.message(F.text.lower() == "изменить имя", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
 async def profile_change_name(message: types.Message, state: FSMContext):
+    '''
+    Переход в состояние изменения пользовательского имени
+    '''
     await state.set_state(RoomVisiterState.CHANGE_PROFILE_NAME)
     user_name = await get_user_name(message.from_user.id)
     await message.answer(f"✏️ Текущее имя: {user_name}\nВведите новое имя (Имя Фамилия №ПК):")
@@ -75,6 +81,9 @@ async def profile_settings(message: types.Message):
 
 @router.message(RoomVisiterState.CHANGE_PROFILE_NAME)
 async def change_user_name_state(message: types.Message, state: FSMContext):
+    '''
+    Подтверждение изменения имени
+    '''
     await change_user_name(message.from_user.id, message.text)
     log_user_info(message.from_user.id, f'Changed name to: {message.text}')
     await message.answer(f"✅ Имя успешно изменено на {message.text}")

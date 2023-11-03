@@ -21,6 +21,9 @@ router = Router()
 
 @router.message(IsAdmin(), F.text.lower() == "сгенерировать случайную очередь")
 async def queue_settings(message: types.Message, state: FSMContext):
+    '''
+    Генерация случайной очереди из пользователей
+    '''
     import random
     user: User = await get_user(message.from_user.id)
     room: Room = await get_room(user.room)
@@ -47,6 +50,9 @@ async def queue_settings(message: types.Message, state: FSMContext):
 
 @router.message(F.text.lower() == "удалить из очереди", RoomVisiterState.ROOM_QUEUE_SETTINGS_SCREEN)
 async def queue_remove_state(message: types.Message, state: FSMContext):
+    '''
+    Подготовка к вводу ID пользователя для удаления из очереди
+    '''
     await state.set_state(RoomVisiterState.QUEUE_SETTINGS_REMOVE)
 
     builder = ReplyKeyboardBuilder()
@@ -60,6 +66,9 @@ async def queue_remove_state(message: types.Message, state: FSMContext):
 
 @router.callback_query(F.data.startswith("queue_remove_"), RoomVisiterState.QUEUE_SETTINGS_REMOVE)
 async def queue_remove_user(callback: CallbackQuery, state: FSMContext):
+    '''
+    Удаления пользователя из очереди
+    '''
     queue_remove_user_id = callback.data.split('_')[2]
     init_user_id = callback.data.split('_')[3]
     init_user: User = await get_user(str(init_user_id))

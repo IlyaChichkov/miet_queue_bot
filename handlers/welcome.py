@@ -40,6 +40,9 @@ async def join_room_state(message: types.Message, state: FSMContext):
 
 @router.message(F.text, WelcomeState.CREATE_ROOM_SCREEN)
 async def create_room(message: types.Message, state: FSMContext):
+    '''
+    Создание комнаты
+    '''
     result = await db_create_room(message.from_user.id, message.text)
     is_room_created = 'room' in result
     if is_room_created:
@@ -54,6 +57,9 @@ async def create_room(message: types.Message, state: FSMContext):
 
 @router.message(F.text, WelcomeState.JOIN_ROOM_SCREEN)
 async def join_room(message: types.Message, state: FSMContext):
+    '''
+    Присоединение к комнате
+    '''
     filter_join_code = re.findall(r"^[0-9]+$", message.text)
 
     check_user_code = len(filter_join_code) > 0 and len(filter_join_code[0]) == 4

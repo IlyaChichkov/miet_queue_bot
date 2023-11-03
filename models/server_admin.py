@@ -14,6 +14,9 @@ from models.user import User
 
 
 async def get_cache_file(message):
+    '''
+    Отправка файла с кешем сервера
+    '''
     message_text = await show_cache()
     Path("./temp_files").mkdir(parents=True, exist_ok=True)
     file_path = './temp_files/server_cache.txt'
@@ -27,6 +30,9 @@ async def get_cache_file(message):
 
 
 async def show_cache():
+    '''
+    Составление текста с кешем для отправки или записи в файл
+    '''
     message = 'Rooms:\n'
     for num, room in enumerate(server_rooms):
         r = json.dumps(room.to_dict())
@@ -43,6 +49,9 @@ async def show_cache():
 
 
 async def __load_rooms():
+    '''
+    Загрузка данных на сервер из БД
+    '''
     rooms_ref = db.reference(f'/rooms').get()
     if rooms_ref is not None:
         rooms_list = list(rooms_ref.items())
@@ -61,6 +70,9 @@ async def __load_rooms():
 
 
 async def add_teacher(teacher_id):
+    '''
+    Добавление специальной роли "преподаватель" пользователю
+    '''
     global_roles_ref = db.reference('/special_roles')
     global_roles = global_roles_ref.get()
     global_roles.update({teacher_id: 2})
