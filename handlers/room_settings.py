@@ -68,15 +68,14 @@ async def room_settings_state(message: types.Message, state: FSMContext):
     user: User = await get_user(message.from_user.id)
     room: Room = await get_room(user.room)
     today = date.today()
-    csv_data = export_study_notes(room.study_notes, 'csv')
+    csv_data = export_study_notes(room.study_notes, 'json')
 
     Path("./temp_files").mkdir(parents=True, exist_ok=True)
-    file_path = './temp_files/study_note_' + str(message.message_id) + '.csv'
-    with open(file_path, 'w+') as file:
+    file_path = './temp_files/study_note_' + str(message.message_id) + '.json'
+    with open(file_path, 'w+', encoding="utf-8") as file:
         file.write(csv_data)
-        print("FILE: ", csv_data)
 
-    send_file = FSInputFile(file_path, f'Заметки. Комната {room.name} {today}.csv')
+    send_file = FSInputFile(file_path, f'Заметки. Комната {room.name} {today}.json')
     await message.answer_document(send_file)
 
     Path(file_path).unlink()
