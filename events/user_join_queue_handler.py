@@ -9,8 +9,9 @@ from models.server_users import get_user
 from models.user import User
 
 
-async def joined_notify(room, user_id, place):
-    await moderator_notify(room, user_id)
+async def joined_notify(room, user_id, place, notify_mod):
+    if notify_mod:
+        await moderator_notify(room, user_id)
     await user_notify(room, user_id, place)
 
 
