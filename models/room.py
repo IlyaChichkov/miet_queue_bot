@@ -99,6 +99,18 @@ class Room:
             return self.queue.pop(0)
         return None
 
+    ''' QUEUE SET '''
+    async def firebase_update_queue(self):
+        rooms_ref = db.reference(f'/rooms')
+        rooms_ref.update({
+            f'{self.room_id}/queue': self.queue
+        })
+
+    ''' QUEUE SET '''
+    async def set_queue(self, queue_list):
+        self.queue = queue_list
+        await self.firebase_update_queue()
+
     ''' QUEUE ADD '''
     async def queue_add(self, user_id):
         await (self.__queue_add_task(user_id))
