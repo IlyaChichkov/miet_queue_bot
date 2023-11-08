@@ -40,18 +40,22 @@ async def get_welcome_message(user_id, room: Room):
     room_name = room.name
     moderator_code = room.moderators_join_code
     join_code = room.users_join_code
+
+    room_users_count = len(room.get_users_list())
+    room_users_mesg = f'Сейчас в комнате {room_users_count} человек'
+
     place_message = 'Вас нет в очереди.'
     if user_id in room.queue:
         place_message = f'Вы в очереди на {room.queue.index(user_id) + 1} месте.'
 
     role_to_welcome_text = {
-        UserRoles.Admin:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n"
+        UserRoles.Admin:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n{room_users_mesg}\n"
                           f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
                           f"Студентов: <code>{join_code}</code>",
-        UserRoles.Moderator:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n"
+        UserRoles.Moderator:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n{room_users_mesg}\n"
                               f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
                               f"Студентов: <code>{join_code}</code>",
-        UserRoles.User:  f'📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n{place_message}'
+        UserRoles.User:  f'📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n{room_users_mesg}\n{place_message}'
     }
     mesg_text = role_to_welcome_text.get(role, 'None')
     return { 'mesg_text': mesg_text, 'keyboard': kb }
