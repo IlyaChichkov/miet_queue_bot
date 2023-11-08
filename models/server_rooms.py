@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 from typing import List
@@ -138,15 +137,8 @@ async def update_database_room_handler(room: Room):
         logging.error('Room in cache has empty ID!')
         return
 
-    try:
-        save_data = room.to_dict()
-        rooms_ref = db.reference('/rooms')
-        rooms_ref.child(room.room_id).set(save_data)
-    except ConnectionError as cer:
-        logging.error(f"Got room update connection error! {cer}")
-        await asyncio.sleep(3)
-
-    except Exception as ex:
-        logging.error(f"Got room update error! {ex}")
+    save_data = room.to_dict()
+    rooms_ref = db.reference('/rooms')
+    rooms_ref.child(room.room_id).set(save_data)
 
 update_room_event.add_handler(update_database_room_handler)
