@@ -38,6 +38,12 @@ async def join_room_state(message: types.Message, state: FSMContext):
     await state.set_state(WelcomeState.JOIN_ROOM_SCREEN)
 
 
+@router.message(F.text.lower() == "назад", WelcomeState.CREATE_ROOM_SCREEN)
+async def create_room_cancel(message: types.Message, state: FSMContext):
+    await state.set_state(WelcomeState.WELCOME_SCREEN)
+    await start_command(message, state)
+
+
 @router.message(F.text, WelcomeState.CREATE_ROOM_SCREEN)
 async def create_room(message: types.Message, state: FSMContext):
     '''
