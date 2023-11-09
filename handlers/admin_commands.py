@@ -57,5 +57,3 @@ async def update_server_cache(message: types.Message, state: FSMContext):
         await message.answer("Обновление кеша на сервере данными из БД...")
         await update_cache()
         await message.answer("Готово!")
-        log_message = await show_cache()
-        await message.answer(log_message)
