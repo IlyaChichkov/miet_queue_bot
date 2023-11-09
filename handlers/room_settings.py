@@ -1,47 +1,23 @@
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
-from aiogram.types import InputFile, FSInputFile
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.types import FSInputFile
 from pathlib import Path
 
-from bot_logging import log_user_info
-from firebase import change_room_auto_queue, get_user_room_key, change_room_name, is_autoqueue_enabled, delete_room
+from bot_conf.bot_logging import log_user_info
+from firebase_manager.firebase import change_room_auto_queue, get_user_room_key, change_room_name, delete_room
 from handlers.main_screens import start_command
 from handlers.room_actions import RoomVisiterState
 from handlers.room_welcome import welcome_room_state
+from keyboards.room_settings_kb import get_settings_kb
 from models.note import export_study_notes
 from models.room import Room
 from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
-from roles.check_user_role import IsAdmin
 from datetime import date
 
 router = Router()
 
-
-async def get_settings_kb(user_id):
-    builder = ReplyKeyboardBuilder()
-
-    builder.row(
-        types.KeyboardButton(text=f"Автоочередь ({await is_autoqueue_enabled(user_id)})"),
-        types.KeyboardButton(text="Изменить название")
-    )
-
-    builder.row(
-        types.KeyboardButton(text='Экспорт заметок')
-    )
-
-    builder.row(
-        types.KeyboardButton(text='🗑️ Удалить комнату')
-    )
-
-    builder.row(
-        types.KeyboardButton(
-            text="Назад"
-        )
-    )
-    return builder.as_markup(resize_keyboard=True)
 
 @router.message(F.text.lower() == "настройки комнаты", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def room_settings_state(message: types.Message, state: FSMContext):
