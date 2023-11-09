@@ -3,7 +3,7 @@ import logging
 from events.queue_events import delete_room_event
 from aiogram import types
 
-from bot import bot
+from bot_conf.bot import bot
 
 
 async def room_deleted_notify(users_id_list):

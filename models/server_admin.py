@@ -1,7 +1,5 @@
 import datetime
 import json
-import logging
-from typing import List
 
 from aiogram.types import FSInputFile
 from firebase_admin import db

@@ -1,5 +1,5 @@
 import logging
-from firebase import get_user_current_role
+from firebase_manager.firebase import get_user_current_role
 
 users_role_cache = {}
 

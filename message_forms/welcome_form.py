@@ -1,4 +1,3 @@
-from aiogram.types import FSInputFile
 from keyboards.welcome_keyboard import get_welcome_kb, get_owner_rooms_kb
 from models.server_users import get_total_users_count
 

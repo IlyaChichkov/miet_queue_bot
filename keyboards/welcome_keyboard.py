@@ -1,7 +1,7 @@
 from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
-from firebase import get_user_owned_rooms_list
+from firebase_manager.firebase import get_user_owned_rooms_list
 from models.server_rooms import get_room
 from roles.special_roles import GlobalRoles, get_access_level
 

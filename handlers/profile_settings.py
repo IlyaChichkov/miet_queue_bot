@@ -1,39 +1,19 @@
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-from bot_logging import log_user_info
-from firebase import change_user_name, get_user_name, db_get_user_room, get_user_role_at_room
+from bot_conf.bot_logging import log_user_info
+from firebase_manager.firebase import change_user_name, get_user_name
 from handlers.main_screens import start_command
 from handlers.room_actions import RoomVisiterState
-from handlers.room_welcome import welcome_room_state
-from models.note import export_study_notes, export_study_notes_by_user
+from keyboards.profile_settings_kb import get_settings_kb
+from models.note import export_study_notes_by_user
 from models.room import Room
 from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
 from roles.check_user_role import IsAdmin, IsModerator
-from roles.user_roles_enum import UserRoles
 
 router = Router()
-
-async def get_settings_kb(user_id):
-    builder = ReplyKeyboardBuilder()
-
-    builder.row(
-        types.KeyboardButton(text="Изменить имя")
-    )
-
-    role = await get_user_role_at_room(user_id)
-    if role and role is not UserRoles.User:
-        builder.row(types.KeyboardButton(text="Мои заметки"))
-
-    builder.row(
-        types.KeyboardButton(
-            text="Назад"
-        )
-    )
-    return builder.as_markup(resize_keyboard=True)
 
 
 @router.message(F.text.lower() == "профиль")

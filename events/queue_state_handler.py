@@ -2,9 +2,9 @@ import logging
 
 from aiogram import types
 
-from bot import bot
+from bot_conf.bot import bot
 from events.queue_events import queue_enable_state_event
-from firebase import get_room_by_key
+from firebase_manager.firebase import get_room_by_key
 from models.room import Room
 
 

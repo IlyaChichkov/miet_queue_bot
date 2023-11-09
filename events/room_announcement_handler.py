@@ -1,6 +1,6 @@
 import logging
 
-from bot import bot
+from bot_conf.bot import bot
 from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User

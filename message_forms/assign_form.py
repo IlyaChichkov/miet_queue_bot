@@ -1,4 +1,4 @@
-from firebase import get_user_name
+from firebase_manager.firebase import get_user_name
 from keyboards.assign_keyboard import get_assign_kb, get_assign_note_kb
 
 

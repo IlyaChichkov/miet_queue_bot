@@ -1,15 +1,14 @@
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
-from bot_logging import log_user_info
 from events.room_announcement_handler import send_public_announcement
-from firebase import leave_room, exit_queue
+from firebase_manager.firebase import leave_room, exit_queue
 from handlers.main_screens import start_command
 from handlers.queue_screen import queue_list_state, queue_pop_call
 from handlers.room_welcome import welcome_room_state
 from message_forms.room_forms import get_users_list_form, get_join_queue_form, get_announcement_form
 from roles.check_user_role import IsModerator, IsAdmin, IsUser
-from states.room import RoomVisiterState
+from states.room_state import RoomVisiterState
 
 router = Router()
 

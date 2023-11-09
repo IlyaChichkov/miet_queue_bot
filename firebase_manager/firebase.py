@@ -1,13 +1,10 @@
-import re
-
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 import logging
 
-from events.queue_events import update_queue_event, queue_enable_state_event, user_joined_event, username_changed_event
+from events.queue_events import queue_enable_state_event, user_joined_event, username_changed_event
 from models.room import Room
-from models.server_passwords import load_passwords, check_password
 from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code, remove_room
 from models.server_users import get_user
 from models.user import User

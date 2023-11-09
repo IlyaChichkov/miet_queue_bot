@@ -1,17 +1,9 @@
-import logging
-
-from aiogram import Router, F, types
-
-from bot import bot
-from events.queue_events import queue_enable_state_event
-from firebase import db_get_user_room, is_user_name_default, get_room_by_key, get_user_name
+from aiogram import Router, types
+from firebase_manager.firebase import db_get_user_room, is_user_name_default, get_user_name
 from message_forms.room_forms import get_welcome_message
-from states.room import RoomVisiterState
+from states.room_state import RoomVisiterState
 
 router = Router()
-
-# can add user join notification to moderators
-# update_queue_event.add_handler(update_list_for_users)
 
 
 async def welcome_room(message: types.Message, user_id = None):

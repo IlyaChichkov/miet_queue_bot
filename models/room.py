@@ -3,7 +3,7 @@ import logging
 
 from firebase_admin import db
 
-from bot_logging import log_database_update
+from bot_conf.bot_logging import log_database_update
 from events.queue_events import update_room_event, update_queue_event
 from models.note import StudyNote
 from models.server_users import get_user

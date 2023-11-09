@@ -1,10 +1,7 @@
 import logging
 
-from aiogram import types
-
-from bot import bot
+from bot_conf.bot import bot
 from events.queue_events import user_joined_queue_event
-from firebase import get_room_by_key
 from models.server_users import get_user
 from models.user import User
 

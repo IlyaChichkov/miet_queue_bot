@@ -1,8 +1,8 @@
 import logging
 from aiogram import Router, types
-from bot import bot
+from bot_conf.bot import bot
 from events.queue_events import user_assigned_event
-from firebase import get_user_name, get_user_room_key, get_room_by_key
+from firebase_manager.firebase import get_user_name, get_user_room_key, get_room_by_key
 
 router = Router()
 

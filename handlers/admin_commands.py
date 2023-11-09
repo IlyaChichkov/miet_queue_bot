@@ -2,11 +2,10 @@ from aiogram import Router, F, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from bot import bot
-from models.room import Room
-from models.server_admin import delete_cache, show_cache, update_cache, add_teacher, get_cache_file
+from bot_conf.bot import bot
+from models.server_admin import delete_cache, update_cache, add_teacher, get_cache_file
 from roles.special_roles import check_access_level, GlobalRoles
-from states.admin import AdminState
+from states.admin_state import AdminState
 
 router = Router()
 

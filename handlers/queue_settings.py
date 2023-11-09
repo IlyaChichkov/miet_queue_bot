@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from firebase import generate_random_queue
+from firebase_manager.firebase import generate_random_queue
 from handlers.queue_screen import queue_list_state, delete_cache_messages
 from models.room import Room
 from models.server_rooms import get_room
@@ -13,8 +13,8 @@ from models.server_users import get_user
 from models.user import User
 from roles.check_user_role import IsAdmin, IsModerator
 from keyboards.queue_settings_keyboard import get_queue_settings_kb, get_remove_user_kb
-from states.room import RoomVisiterState
-from bot import bot
+from states.room_state import RoomVisiterState
+from bot_conf.bot import bot
 
 router = Router()
 

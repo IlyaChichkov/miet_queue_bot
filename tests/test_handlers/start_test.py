@@ -4,7 +4,7 @@ from aiogram.types import FSInputFile
 
 from handlers.main_screens import start_command
 from message_forms.welcome_form import get_welcome_form
-import firebase
+
 
 @pytest.mark.asyncio
 async def start_command_handler():

@@ -1,9 +1,7 @@
 
 import logging
 
-from aiogram import types
-
-from bot import bot
+from bot_conf.bot import bot
 from events.queue_events import update_queue_event
 from models.room import Room
 from models.server_rooms import get_room
