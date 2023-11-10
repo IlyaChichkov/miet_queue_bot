@@ -33,7 +33,7 @@ async def show_cache():
     '''
     message = 'Rooms:\n'
     for num, room in enumerate(server_rooms):
-        r = json.dumps(room.to_dict())
+        r = json.dumps(room.to_log())
         loaded_r = json.loads(r)
         message += f' {num+1}) {json.dumps(loaded_r, indent=2, ensure_ascii=False)}\n'
 

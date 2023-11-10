@@ -259,3 +259,18 @@ class Room:
             "join_code": self.users_join_code,
             "mod_password": self.moderators_join_code
         }
+
+    def to_log(self):
+        return {
+            "room_id": self.room_id,
+            "name": self.name,
+            "admins": self.admins,
+            "moderators": self.moderators,
+            "users": self.users,
+            "queue": self.queue,
+            "queue_enabled": self.is_queue_enabled,
+            "queue_on_join": self.is_queue_on_join,
+            "join_code": self.users_join_code,
+            "mod_password": self.moderators_join_code,
+            "study_notes": self.study_notes
+        }
