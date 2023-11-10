@@ -22,7 +22,7 @@ router = Router()
 
 queue_view_update = {}
 
-async def update_queue_handler(room_id, user_id, notify):
+async def update_queue_handler(room_id, user_id, notify=True):
     await update_list_for_users()
 
 
