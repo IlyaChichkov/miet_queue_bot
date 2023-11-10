@@ -1,4 +1,6 @@
-from firebase import db_get_user_room
+import logging
+
+from firebase_manager.firebase import db_get_user_room, try_enter_queue
 from keyboards.room_keyboard import *
 from models.room import Room
 from models.server_users import get_user
@@ -20,6 +22,15 @@ def get_user_role_in_room(user_id, room):
         return UserRoles.Admin
 
 
+async def get_join_queue_form(user_id):
+    result = await try_enter_queue(user_id)
+
+    if 'error' in result:
+        return f"{result['error_text']}"
+
+    return f""
+
+
 async def get_welcome_message(user_id, room: Room):
     role = room.get_user_role(user_id)
     keyboard_func = role_to_welcome_kb.get(role, get_user_welcome_kb)
@@ -28,14 +39,22 @@ async def get_welcome_message(user_id, room: Room):
     room_name = room.name
     moderator_code = room.moderators_join_code
     join_code = room.users_join_code
+
+    room_users_count = len(room.get_users_list())
+    room_users_mesg = f'Сейчас в комнате {room_users_count} человек'
+
+    place_message = 'Вас нет в очереди.'
+    if user_id in room.queue:
+        place_message = f'Вы в очереди на {room.queue.index(user_id) + 1} месте.'
+
     role_to_welcome_text = {
-        UserRoles.Admin:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n"
+        UserRoles.Admin:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n{room_users_mesg}\n"
                           f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
                           f"Студентов: <code>{join_code}</code>",
-        UserRoles.Moderator:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n"
+        UserRoles.Moderator:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n{room_users_mesg}\n"
                               f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
                               f"Студентов: <code>{join_code}</code>",
-        UserRoles.User:  f'📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n'
+        UserRoles.User:  f'📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n{room_users_mesg}\n{place_message}'
     }
     mesg_text = role_to_welcome_text.get(role, 'None')
     return { 'mesg_text': mesg_text, 'keyboard': kb }
@@ -68,4 +87,18 @@ async def get_users_list_form(user_id):
         for num, ruser in enumerate(room.users):
             form_message += f'{num + 1}. <b>{await get_username(ruser)}</b>\n'
 
+    logging.info(f'USER_{user_id} requested users list')
+    return form_message, form_kb
+
+
+async def get_announcement_form(user_id):
+    builder = ReplyKeyboardBuilder()
+
+    builder.row(
+        types.KeyboardButton(
+            text="Назад"
+        )
+    )
+    form_kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+    form_message = 'Введите текст общего уведомления:'
     return form_message, form_kb

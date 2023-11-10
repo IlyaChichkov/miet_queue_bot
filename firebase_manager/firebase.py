@@ -1,19 +1,16 @@
-import re
-
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 import logging
 
-from events.queue_events import update_queue_event, queue_enable_state_event, user_joined_event, username_changed_event
+from events.queue_events import queue_enable_state_event, user_joined_event, username_changed_event
 from models.room import Room
-from models.server_passwords import load_passwords, check_password
 from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code, remove_room
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles
 
-cred = credentials.Certificate("firebase.config.json")
+cred = credentials.Certificate("firebase_manager/firebase.config.json")
 firebase_admin.initialize_app(cred, {
     'databaseURL': "https://queue-miet-default-rtdb.europe-west1.firebasedatabase.app/"
 })
@@ -24,7 +21,7 @@ async def get_room_by_key(room_key) -> Room:
     if room:
         return room
     else:
-        logging.warning(f'Null room return by room_id!')
+        logging.warning(f'Null room return by room_id! ROOM_{room_key}')
         return None
 
 
@@ -193,7 +190,7 @@ async def try_enter_queue(user_id):
 
 async def enter_queue(user_id):
     user: User = await get_user(user_id)
-    logging.info(f'USER_{user_id} left queue')
+    logging.info(f'USER_{user_id} entered queue')
     return await user.enter_queue()
 
 
@@ -230,6 +227,20 @@ async def get_user_role(user_id):
     user_role = room.get_user_group(user_id)
     logging.info(f'USER_{user_id}: Get user role: {user_role}')
     return user_role
+
+
+async def generate_random_queue(room, queue_list):
+    await room.queue_clear()
+    await room.set_queue(queue_list)
+
+    message_text = ''
+    for i, add_user in enumerate(queue_list):
+        user: User = await get_user(add_user)
+        message_text += f'{i + 1}. {user.name}\n'
+        await user.set_queue_enter(room, i)
+
+    # await update_queue_event.fire(room.room_id)
+    return message_text
 
 
 async def switch_room_queue_enabled(user_id):

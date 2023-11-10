@@ -1,7 +1,7 @@
 from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
-from firebase import get_user_owned_rooms_list
+from firebase_manager.firebase import get_user_owned_rooms_list
 from models.server_rooms import get_room
 from roles.special_roles import GlobalRoles, get_access_level
 
@@ -12,10 +12,11 @@ async def get_owner_rooms_kb(user_id):
 
     for room_item in rooms_list:
         room = await get_room(room_item)
-        builder.row(
-            types.InlineKeyboardButton(text=room.name,
-                                       callback_data=f"connect_room#{room_item}")
-        )
+        if room:
+            builder.row(
+                types.InlineKeyboardButton(text=room.name,
+                                           callback_data=f"connect_room#{room_item}")
+            )
 
     return builder.as_markup()
 

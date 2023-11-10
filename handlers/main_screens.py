@@ -1,15 +1,17 @@
+import logging
+
 from aiogram import Router, F, types
 from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-from firebase import db_get_user_room
+from firebase_manager.firebase import db_get_user_room
 from handlers.room_welcome import welcome_room
 from message_forms.welcome_form import get_welcome_form
 from models.server_users import get_user
 from models.user import User
 from roles.role_cache import users_role_cache
-from states.room import RoomVisiterState
-from states.welcome import WelcomeState
+from states.room_state import RoomVisiterState
+from states.welcome_state import WelcomeState
 
 router = Router()
 
@@ -65,5 +67,6 @@ async def start_command(message: types.Message, state: FSMContext):
         "https://i.postimg.cc/MpCGsd4H/1.png"
     )
     '''
+    logging.info(f'MAIN SCREEN | USER_{user.user_id} | {message.from_user.username}')
     form_message, form_kb = await get_welcome_form(message.from_user.first_name, message.from_user.id)
     await message.answer_photo(start_image, form_message, reply_markup=form_kb)

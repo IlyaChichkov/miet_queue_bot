@@ -17,14 +17,13 @@ async def get_remove_user_kb(user_id):
         builder.row(
             types.InlineKeyboardButton(text=f"{i}. {queue_user.name}", callback_data=f"queue_remove_{room_user_id}_{user_id}")
         )
-        print(f'Remove user btn:')
-        print(f"queue_remove_{room_user_id}_{user_id}")
 
     return builder.as_markup()
 
 async def get_queue_settings_kb():
     builder = ReplyKeyboardBuilder()
 
+    builder.row(types.KeyboardButton(text="Сгенерировать случайную очередь"))
     builder.row(types.KeyboardButton(text="Удалить из очереди"))
     builder.row(types.KeyboardButton(text="Назад"))
 

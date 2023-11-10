@@ -1,20 +1,17 @@
 from aiogram import Router, F, types
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from bot_logging import log_user_info
-from firebase import db_create_room, user_join_room, enter_queue
+from bot_conf.bot_logging import log_user_info
+from firebase_manager.firebase import db_create_room, user_join_room, enter_queue
 import re
 
 from handlers.main_screens import start_command
 from handlers.room_welcome import welcome_room_state, welcome_room
 from keyboards.welcome_keyboard import get_welcome_kb
-from message_forms.welcome_form import get_owner_rooms_form
 from models.room import Room
 from roles.special_roles import check_access_level, GlobalRoles
-from states.room import RoomVisiterState
-from states.welcome import WelcomeState
+from states.room_state import RoomVisiterState
+from states.welcome_state import WelcomeState
 
 router = Router()
 
@@ -38,8 +35,17 @@ async def join_room_state(message: types.Message, state: FSMContext):
     await state.set_state(WelcomeState.JOIN_ROOM_SCREEN)
 
 
+@router.message(F.text.lower() == "назад", WelcomeState.CREATE_ROOM_SCREEN)
+async def create_room_cancel(message: types.Message, state: FSMContext):
+    await state.set_state(WelcomeState.WELCOME_SCREEN)
+    await start_command(message, state)
+
+
 @router.message(F.text, WelcomeState.CREATE_ROOM_SCREEN)
 async def create_room(message: types.Message, state: FSMContext):
+    '''
+    Создание комнаты
+    '''
     result = await db_create_room(message.from_user.id, message.text)
     is_room_created = 'room' in result
     if is_room_created:
@@ -54,6 +60,9 @@ async def create_room(message: types.Message, state: FSMContext):
 
 @router.message(F.text, WelcomeState.JOIN_ROOM_SCREEN)
 async def join_room(message: types.Message, state: FSMContext):
+    '''
+    Присоединение к комнате
+    '''
     filter_join_code = re.findall(r"^[0-9]+$", message.text)
 
     check_user_code = len(filter_join_code) > 0 and len(filter_join_code[0]) == 4

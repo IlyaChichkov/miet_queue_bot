@@ -3,8 +3,8 @@ import logging
 
 from firebase_admin import db
 
-from bot_logging import log_database_update
-from events.queue_events import update_room_event, update_queue_event
+from bot_conf.bot_logging import log_database_update
+from events.queue_events import update_room_event, update_queue_event, users_notify_queue_changed_event
 from models.note import StudyNote
 from models.server_users import get_user
 from models.user import User
@@ -20,7 +20,7 @@ class Room:
         self.users_join_code = ''
         self.moderators_join_code = ''
         self.is_queue_enabled = False
-        self.is_queue_on_join = True
+        self.is_queue_on_join = False
         self.admins = []
         self.moderators = []
         self.users = []
@@ -70,7 +70,7 @@ class Room:
     ''' AUTO QUEUE ON JOIN '''
     async def switch_autoqueue_enabled(self):
         await (self.__switch_autoqueue_enabled_task())
-        await update_room_event.fire(self)
+        asyncio.create_task(update_room_event.fire(self))
 
     async def __switch_autoqueue_enabled_task(self):
         self.is_queue_on_join = not self.is_queue_on_join
@@ -78,7 +78,7 @@ class Room:
     ''' QUEUE ENABLE '''
     async def switch_queue_enabled(self):
         await (self.__switch_queue_enabled_task())
-        await update_room_event.fire(self)
+        asyncio.create_task(update_room_event.fire(self))
 
     async def __switch_queue_enabled_task(self):
         self.is_queue_enabled = not self.is_queue_enabled
@@ -91,13 +91,30 @@ class Room:
         if role is UserRoles.User:
             return None
         user_pop_id = await self.__queue_pop_task()
-        await (self.__update_database())
+        asyncio.create_task(update_room_event.fire(self))
         return user_pop_id
 
     async def __queue_pop_task(self):
         if len(self.queue) > 0:
+            users_notify = self.queue[1:]
+            print(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
+            if users_notify:
+                await users_notify_queue_changed_event.fire(users_notify)
+
             return self.queue.pop(0)
         return None
+
+    ''' QUEUE SET '''
+    async def firebase_update_queue(self):
+        rooms_ref = db.reference(f'/rooms')
+        rooms_ref.update({
+            f'{self.room_id}/queue': self.queue
+        })
+
+    ''' QUEUE SET '''
+    async def set_queue(self, queue_list):
+        self.queue = queue_list
+        await self.firebase_update_queue()
 
     ''' QUEUE ADD '''
     async def queue_add(self, user_id):
@@ -110,17 +127,26 @@ class Room:
 
     ''' QUEUE REMOVE '''
     async def queue_remove(self, user_id):
-        self.queue_remove_task(int(user_id))
-        await update_room_event.fire(self)
-        await update_queue_event.fire()
+        await self.queue_remove_task(int(user_id))
+        asyncio.create_task(update_room_event.fire(self))
+        await update_queue_event.fire(self.room_id, user_id)
 
-    def queue_remove_task(self, user_id):
-        self.queue.remove(user_id)
+    async def queue_remove_task(self, user_id):
+        if user_id in self.queue:
+            user_index = self.queue.index(user_id)
+            users_notify = self.queue[user_index + 1:]
+            print(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
+            if users_notify:
+                await users_notify_queue_changed_event.fire(users_notify)
+
+            self.queue.remove(user_id)
 
     ''' QUEUE CLEAR '''
     async def queue_clear(self):
-        await (self.queue_clear_task())
-        await update_room_event.fire(self)
+        # await (self.queue_clear_task())
+        self.queue.clear()
+        await update_queue_event.fire(self.room_id, None)
+        asyncio.create_task(update_room_event.fire(self))
 
     async def queue_clear_task(self):
         self.queue.clear()
@@ -147,7 +173,7 @@ class Room:
         # if user_id not in self.admins:
         if user_id in self.queue:
             self.queue.remove(user_id)
-            await update_queue_event.fire()
+            await update_queue_event.fire(self.room_id, user_id)
         self.role_to_list(self.get_user_role(user_id)).remove(user_id)
         user: User = await get_user(user_id)
         await user.leave_room()
@@ -243,4 +269,19 @@ class Room:
             "queue_on_join": self.is_queue_on_join,
             "join_code": self.users_join_code,
             "mod_password": self.moderators_join_code
+        }
+
+    def to_log(self):
+        return {
+            "room_id": self.room_id,
+            "name": self.name,
+            "admins": self.admins,
+            "moderators": self.moderators,
+            "users": self.users,
+            "queue": self.queue,
+            "queue_enabled": self.is_queue_enabled,
+            "queue_on_join": self.is_queue_on_join,
+            "join_code": self.users_join_code,
+            "mod_password": self.moderators_join_code,
+            "study_notes": self.study_notes
         }

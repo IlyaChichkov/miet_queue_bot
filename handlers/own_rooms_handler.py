@@ -1,16 +1,16 @@
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
-from bot_logging import log_user_info
-from firebase import user_join_room, admin_join_room
-from handlers.room_welcome import welcome_room_state, welcome_room
+from bot_conf.bot_logging import log_user_info
+from firebase_manager.firebase import admin_join_room
+from handlers.room_welcome import welcome_room
 from message_forms.welcome_form import get_owner_rooms_form
 from models.room import Room
 from models.server_users import get_user
 from models.user import User
 from roles.special_roles import check_access_level, GlobalRoles
-from states.room import RoomVisiterState
-from states.welcome import WelcomeState
+from states.room_state import RoomVisiterState
+from states.welcome_state import WelcomeState
 
 router = Router()
 

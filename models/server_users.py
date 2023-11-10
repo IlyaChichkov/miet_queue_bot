@@ -1,4 +1,3 @@
-import json
 import logging
 from typing import List
 
@@ -73,3 +72,7 @@ async def add_user(user: User):
     logging.info(f'Caching USER_{user.user_id}')
     user.check_has_default_name()
     server_users.append(user)
+
+
+async def get_total_users_count():
+    return len(server_users)

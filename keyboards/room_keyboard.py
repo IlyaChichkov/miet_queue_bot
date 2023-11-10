@@ -1,7 +1,7 @@
 from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-from firebase import is_user_in_queue, get_room_queue_enabled_by_userid
+from firebase_manager.firebase import is_user_in_queue, get_room_queue_enabled_by_userid
 
 
 async def get_admin_welcome_kb(user_id):
@@ -13,7 +13,10 @@ async def get_admin_welcome_kb(user_id):
     )
 
     builder.row(types.KeyboardButton(text="Настройки комнаты"))
-    builder.row(types.KeyboardButton(text="Список пользователей"))
+    builder.row(
+        types.KeyboardButton(text="Сделать уведомление"),
+        types.KeyboardButton(text="Список пользователей")
+    )
 
     builder.row(
         types.KeyboardButton(

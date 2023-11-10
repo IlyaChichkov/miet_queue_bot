@@ -2,28 +2,29 @@ import logging
 
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-from bot_logging import log_user_info
+from bot_conf.bot_logging import log_user_info
 from events.queue_events import update_queue_event, user_assigned_event, username_changed_event
-from firebase import queue_pop, get_user_role, get_room_queue_enabled_by_userid, switch_room_queue_enabled, \
-    get_user_name
+from firebase_manager.firebase import queue_pop, switch_room_queue_enabled, get_user_name
 from handlers.room_welcome import welcome_room_state
 from message_forms.assign_form import get_assigned_mesg, get_assigned_add_note
-from message_forms.queue_form import get_queue_list_mesg, get_queue_main, get_noqueue_members_mesg, \
-    get_queue_main_admin, get_queue_main_form
+from message_forms.queue_form import get_queue_list_mesg, get_noqueue_members_mesg, get_queue_main_form
 from models.note import StudyNote
 from models.room import Room
 from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
 from roles.check_user_role import IsAdmin
-from states.room import RoomVisiterState
-from bot import bot
+from states.room_state import RoomVisiterState
+from bot_conf.bot import bot
 
 router = Router()
 
 queue_view_update = {}
+
+async def update_queue_handler(room_id, user_id, notify=True):
+    await update_list_for_users()
+
 
 async def update_list_for_users():
     '''
@@ -48,7 +49,7 @@ async def update_list_for_users():
 
 
 username_changed_event.add_handler(update_list_for_users)
-update_queue_event.add_handler(update_list_for_users)
+update_queue_event.add_handler(update_queue_handler)
 
 
 @router.message(IsAdmin(), F.text.lower() == "⛔ выключить очередь")
@@ -228,6 +229,7 @@ async def assigned_note_added(message: types.Message, state: FSMContext):
     teacher_name = await get_user_name(user.user_id)
     pupil_name = await get_user_name(user.assigned_user_id)
     room.study_notes.append(StudyNote(room.room_id, room.name, user.user_id, teacher_name, pupil_name, message.text))
+    logging.info(f'Note was added by {user.user_id} to {user.assigned_user_id}\nNote: {message.text}')
     await message.answer(f"Заметка добавлена!", parse_mode="HTML")
     # Выход на экран очереди
     await exit_assigned_queue(message, state)

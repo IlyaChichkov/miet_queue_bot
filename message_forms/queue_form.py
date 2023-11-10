@@ -1,7 +1,7 @@
 from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-from firebase import get_queue_users, get_user_room_key, get_room_queue_enabled_by_userid
+from firebase_manager.firebase import get_queue_users, get_user_room_key, get_room_queue_enabled_by_userid
 from keyboards.queue_keyboard import get_main_queue_kb, get_queue_kb
 from roles.role_cache import get_user_role
 

@@ -1,5 +1,7 @@
 from events.event import AsyncEvent
 
+users_notify_queue_changed_event = AsyncEvent()
+
 update_queue_event = AsyncEvent()
 user_assigned_event = AsyncEvent()
 queue_enable_state_event = AsyncEvent()

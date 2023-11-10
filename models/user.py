@@ -3,7 +3,8 @@ import logging
 import re
 
 from firebase_admin import db
-from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event
+from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event, \
+    users_notify_queue_changed_event
 
 
 class User:
@@ -103,17 +104,28 @@ class User:
         from models.server_rooms import get_room
         room = await get_room(self.room)
         if room and self.user_id in room.queue:
+            user_index = room.queue.index(self.user_id)
+            users_notify = room.queue[user_index + 1:]
+            if users_notify:
+                await users_notify_queue_changed_event.fire(users_notify)
+
             await room.queue_remove(self.user_id)
-            await update_queue_event.fire()
+            await update_queue_event.fire(room.room_id, self.user_id)
         return True
 
+    ''' SET QUEUE ENTER '''
+    async def set_queue_enter(self, room, place):
+        asyncio.create_task(user_joined_queue_event.fire(room, self.user_id, place + 1, False))
+        asyncio.create_task(self.__update_database())
+
     ''' ENTER QUEUE '''
-    async def enter_queue(self):
-        queue_place = await (self.__enter_queue_task())
-        await (self.__update_database())
+    async def enter_queue(self, notify_mod: bool = True):
+        queue_place = await (self.__enter_queue_task(notify_mod))
+        asyncio.create_task(self.__update_database())
+        # await (self.__update_database())
         return queue_place
 
-    async def __enter_queue_task(self):
+    async def __enter_queue_task(self, notify_mod: bool = True):
         from models.server_rooms import get_room
         room = await get_room(self.room)
         if room:
@@ -121,8 +133,8 @@ class User:
                 return -1
             place = len(room.queue) + 1
             await room.queue_add(self.user_id)
-            await user_joined_queue_event.fire(room, self.user_id)
-            await update_queue_event.fire()
+            asyncio.create_task(user_joined_queue_event.fire(room, self.user_id, place, notify_mod))
+            await update_queue_event.fire(room.room_id, self.user_id)
             return place
         return None
 
