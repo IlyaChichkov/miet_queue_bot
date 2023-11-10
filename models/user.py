@@ -3,7 +3,8 @@ import logging
 import re
 
 from firebase_admin import db
-from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event
+from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event, \
+    users_notify_queue_changed_event
 
 
 class User:
@@ -103,6 +104,11 @@ class User:
         from models.server_rooms import get_room
         room = await get_room(self.room)
         if room and self.user_id in room.queue:
+            user_index = room.queue.index(self.user_id)
+            users_notify = room.queue[user_index + 1:]
+            if users_notify:
+                await users_notify_queue_changed_event.fire(users_notify)
+
             await room.queue_remove(self.user_id)
             await update_queue_event.fire(room.room_id, self.user_id)
         return True
@@ -128,7 +134,7 @@ class User:
             place = len(room.queue) + 1
             await room.queue_add(self.user_id)
             asyncio.create_task(user_joined_queue_event.fire(room, self.user_id, place, notify_mod))
-            await update_queue_event.fire(room.room_id, self.user_id, notify=False)
+            await update_queue_event.fire(room.room_id, self.user_id)
             return place
         return None
 

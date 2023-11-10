@@ -4,7 +4,7 @@ import logging
 from firebase_admin import db
 
 from bot_conf.bot_logging import log_database_update
-from events.queue_events import update_room_event, update_queue_event
+from events.queue_events import update_room_event, update_queue_event, users_notify_queue_changed_event
 from models.note import StudyNote
 from models.server_users import get_user
 from models.user import User
@@ -20,7 +20,7 @@ class Room:
         self.users_join_code = ''
         self.moderators_join_code = ''
         self.is_queue_enabled = False
-        self.is_queue_on_join = True
+        self.is_queue_on_join = False
         self.admins = []
         self.moderators = []
         self.users = []
@@ -96,6 +96,11 @@ class Room:
 
     async def __queue_pop_task(self):
         if len(self.queue) > 0:
+            users_notify = self.queue[1:]
+            print(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
+            if users_notify:
+                await users_notify_queue_changed_event.fire(users_notify)
+
             return self.queue.pop(0)
         return None
 
@@ -122,12 +127,18 @@ class Room:
 
     ''' QUEUE REMOVE '''
     async def queue_remove(self, user_id):
-        self.queue_remove_task(int(user_id))
+        await self.queue_remove_task(int(user_id))
         asyncio.create_task(update_room_event.fire(self))
         await update_queue_event.fire(self.room_id, user_id)
 
-    def queue_remove_task(self, user_id):
+    async def queue_remove_task(self, user_id):
         if user_id in self.queue:
+            user_index = self.queue.index(user_id)
+            users_notify = self.queue[user_index + 1:]
+            print(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
+            if users_notify:
+                await users_notify_queue_changed_event.fire(users_notify)
+
             self.queue.remove(user_id)
 
     ''' QUEUE CLEAR '''
