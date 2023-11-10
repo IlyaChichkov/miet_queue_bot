@@ -42,14 +42,19 @@ async def profile_change_name(message: types.Message, state: FSMContext):
     Переход в состояние изменения пользовательского имени
     '''
     await state.set_state(RoomVisiterState.CHANGE_PROFILE_NAME)
-    user_name = await get_user_name(message.from_user.id)
-    await message.answer(f"✏️ Текущее имя: {user_name}\nВведите новое имя (Имя Фамилия №ПК):")
+    await message.answer(f"✏️ Введите новое имя (Имя Фамилия №ПК):", reply_markup=types.ReplyKeyboardRemove())
 
 
 @router.message(F.text.lower() == "назад", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
 async def profile_back(message: types.Message, state: FSMContext):
     await state.set_state(None)
     await start_command(message, state)
+
+
+@router.message(F.text.lower() == "назад", RoomVisiterState.CHANGE_PROFILE_NAME)
+async def profile_back(message: types.Message, state: FSMContext):
+    await state.set_state(RoomVisiterState.PROFILE_SETTINGS_SCREEN)
+    await profile_settings(message)
 
 
 @router.message(RoomVisiterState.PROFILE_SETTINGS_SCREEN)
