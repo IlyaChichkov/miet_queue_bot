@@ -6,10 +6,12 @@ from events.queue_events import update_queue_event
 from models.room import Room
 from models.server_rooms import get_room
 
-async def user_notify(room_id, user_id):
+async def user_notify(room_id, user_id, notify=True):
     '''
     Уведомление пользователей об изменении в очереди
     '''
+    if not notify:
+        return
     room: Room = await get_room(room_id)
     for user_num, user_in_queue in enumerate(room.queue):
         if user_in_queue == user_id:

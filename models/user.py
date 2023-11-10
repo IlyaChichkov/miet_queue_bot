@@ -128,7 +128,7 @@ class User:
             place = len(room.queue) + 1
             await room.queue_add(self.user_id)
             asyncio.create_task(user_joined_queue_event.fire(room, self.user_id, place, notify_mod))
-            await update_queue_event.fire(room.room_id, self.user_id)
+            await update_queue_event.fire(room.room_id, self.user_id, notify=False)
             return place
         return None
 
