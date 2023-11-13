@@ -1,4 +1,4 @@
-from keyboards.welcome_keyboard import get_welcome_kb, get_owner_rooms_kb
+from keyboards.welcome_keyboard import get_welcome_kb, get_owner_rooms_kb, get_favorite_rooms_kb
 from models.server_users import get_total_users_count
 
 
@@ -15,3 +15,10 @@ async def get_welcome_form(user_name, user_id):
     message = f"Добро пожаловать {user_name}!\nТекущее количество пользователей: {users_count}\nПожалуйста выберите действие:"
 
     return message, keyboard
+
+
+async def get_favorites_form(user_id):
+    kb = await get_favorite_rooms_kb(user_id)
+    message_form = "Избранные комнаты:"
+    return message_form, kb
+

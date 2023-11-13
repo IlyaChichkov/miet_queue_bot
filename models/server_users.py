@@ -50,6 +50,9 @@ def load_user_from_json(user_key, user_data) -> User:
     if 'room' in user_data:
         user.room = user_data['room']
 
+    if 'favorites' in user_data:
+        user.favorites = user_data['favorites']
+
     if 'current_role' in user_data:
         user.current_role = user_data['current_role']
     return user

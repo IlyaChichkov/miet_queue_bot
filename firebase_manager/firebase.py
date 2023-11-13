@@ -1,3 +1,5 @@
+import asyncio
+
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
@@ -45,6 +47,20 @@ async def db_get_user_room(user_id):
         error_message = f"Error getting user's room. Error: {str(e)}"
         logging.error(error_message)
         return { 'error': str(e) }
+
+
+async def toggle_favorite_room(user_id):
+    user: User = await get_user(user_id)
+    return await user.toggle_favorite_room(user.room)
+
+
+async def get_favorite_rooms_dict(user_id):
+    favorites = {}
+    user: User = await get_user(user_id)
+    for favorite_room, role in user.favorites.items():
+        room: Room = await get_room(favorite_room)
+        favorites[favorite_room] = {'room': room, 'role': role}
+    return favorites
 
 
 async def check_room_exist(room_id):
@@ -216,6 +232,11 @@ async def is_user_in_queue(user_id):
     return False
 
 
+async def is_room_favorite(user_id):
+    user: User = await get_user(user_id)
+    return await user.is_favorite_room(user.room)
+
+
 async def get_room_queue_enabled_by_userid(user_id) -> bool:
     user: User = await get_user(user_id)
     room: Room = await get_room(user.room)
@@ -249,7 +270,7 @@ async def generate_random_queue(room, queue_list):
         message_text += f'{i + 1}. {user.name}\n'
         await user.set_queue_enter(room, i)
 
-    await update_queue_event.fire(room.room_id, None)
+    asyncio.create_task(update_queue_event.fire(room.room_id, None))
     return message_text
 
 
