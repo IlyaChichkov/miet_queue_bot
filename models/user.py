@@ -115,8 +115,8 @@ class User:
 
     ''' SET QUEUE ENTER '''
     async def set_queue_enter(self, room, place):
-        asyncio.create_task(user_joined_queue_event.fire(room, self.user_id, place + 1, False))
-        asyncio.create_task(self.__update_database())
+        res = await user_joined_queue_event.fire(room, self.user_id, place + 1, False)
+        #asyncio.create_task(self.__update_database())
 
     ''' ENTER QUEUE '''
     async def enter_queue(self, notify_mod: bool = True):

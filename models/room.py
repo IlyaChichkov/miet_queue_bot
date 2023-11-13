@@ -195,8 +195,8 @@ class Room:
             if pass_user_id:
                 self.queue[user_index] = pass_user_id
                 self.queue[user_index + 1] = user_id
-                update_queue_event.fire(self.room_id, None)
-                users_notify_queue_skipped.fire(pass_user_id, user.name, user_index)
+                await update_queue_event.fire(self.room_id, None)
+                await users_notify_queue_skipped.fire(pass_user_id, user.name, user_index + 1)
                 return pass_user_id
         return None
 
