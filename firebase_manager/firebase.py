@@ -10,7 +10,7 @@ from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles
 
-cred = credentials.Certificate("firebase_manager/firebase.config.json")
+cred = credentials.Certificate("firebase.config.json")
 firebase_admin.initialize_app(cred, {
     'databaseURL': "https://queue-miet-default-rtdb.europe-west1.firebasedatabase.app/"
 })
