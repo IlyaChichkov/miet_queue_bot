@@ -4,7 +4,8 @@ import logging
 from firebase_admin import db
 
 from bot_conf.bot_logging import log_database_update
-from events.queue_events import update_room_event, update_queue_event, users_notify_queue_changed_event
+from events.queue_events import update_room_event, update_queue_event, users_notify_queue_changed_event, \
+    users_notify_queue_skipped
 from models.note import StudyNote
 from models.server_users import get_user
 from models.user import User
@@ -185,6 +186,20 @@ class Room:
 
     async def __update_name_task(self, new_name):
         self.name = new_name
+    ''' USER SKIP QUEUE PLACE '''
+    async def skip_queue_place(self, user: User):
+        user_id = user.user_id
+        if user_id in self.queue:
+            user_index = self.queue.index(user_id)
+            pass_user_id = self.queue[user_index + 1] if user_index + 1 < len(self.queue) else None
+            if pass_user_id:
+                self.queue[user_index] = pass_user_id
+                self.queue[user_index + 1] = user_id
+                update_queue_event.fire(self.room_id, None)
+                users_notify_queue_skipped.fire(pass_user_id, user.name, user_index)
+                return pass_user_id
+        return None
+
 
     ''' GET USERS LIST '''
     def get_users_list(self):

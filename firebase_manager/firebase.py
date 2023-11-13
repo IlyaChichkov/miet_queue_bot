@@ -172,6 +172,16 @@ async def get_queue_users(room_key):
     return users_names
 
 
+async def skip_queue_place(user_id):
+    user: User = await get_user(user_id)
+    room: Room = await get_room(user.room)
+    skip_user_id = await room.skip_queue_place(user)
+    if skip_user_id:
+        skip_user: User = await get_user(skip_user_id)
+        return skip_user.name
+    return None
+
+
 async def exit_queue(user_id):
     user: User = await get_user(user_id)
     logging.info(f'USER_{user_id} entered queue')

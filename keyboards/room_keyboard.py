@@ -62,6 +62,7 @@ async def get_user_welcome_kb(user_id):
         if not user_in_queue:
             builder.row(types.KeyboardButton(text="Занять место"))
         else:
+            builder.row(types.KeyboardButton(text="Пропустить вперед"))
             builder.row(types.KeyboardButton(text="Выйти из очереди"))
     else:
         builder.row(types.KeyboardButton(text="Очередь заблокирована"))
