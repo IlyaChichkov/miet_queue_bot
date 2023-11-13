@@ -3,7 +3,7 @@ from firebase_admin import credentials
 from firebase_admin import db
 import logging
 
-from events.queue_events import queue_enable_state_event, user_joined_event, username_changed_event
+from events.queue_events import queue_enable_state_event, user_joined_event, username_changed_event, update_queue_event
 from models.room import Room
 from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code, remove_room
 from models.server_users import get_user
@@ -249,7 +249,7 @@ async def generate_random_queue(room, queue_list):
         message_text += f'{i + 1}. {user.name}\n'
         await user.set_queue_enter(room, i)
 
-    # await update_queue_event.fire(room.room_id)
+    await update_queue_event.fire(room.room_id)
     return message_text
 
 
