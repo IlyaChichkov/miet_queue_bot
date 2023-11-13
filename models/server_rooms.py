@@ -8,6 +8,7 @@ from events.queue_events import update_room_event, delete_room_event
 from models.room import Room
 from models.server_users import get_user
 from models.user import User
+from utils import generate_code
 
 server_rooms: List[Room] = []
 
@@ -67,11 +68,22 @@ def load_room_from_json(room_id, db_room) -> Room:
     return room
 
 
+def check_room_join_code(room_join_code):
+    for r in server_rooms:
+        if r.users_join_code == room_join_code:
+            return True
+    return False
+
+
 async def create_room(user_id, room_name) -> Room:
     logging.info(f'Creating new room by USER_{user_id}. Room name: {room_name}')
 
     user: User = await get_user(user_id)
     room = Room(room_name, user_id)
+
+    while check_room_join_code(room.users_join_code):
+        logging.warning(f'ROOM_{room.room_id} has duplicated user join code ({room.users_join_code}) with other room!')
+        room.users_join_code = generate_code(4)
 
     rooms_ref = db.reference('/rooms')
     room_ref = rooms_ref.push(room.to_dict())
