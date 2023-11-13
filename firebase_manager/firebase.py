@@ -249,7 +249,7 @@ async def generate_random_queue(room, queue_list):
         message_text += f'{i + 1}. {user.name}\n'
         await user.set_queue_enter(room, i)
 
-    await update_queue_event.fire(room.room_id)
+    await update_queue_event.fire(room.room_id, None)
     return message_text
 
 
