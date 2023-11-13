@@ -88,4 +88,4 @@ async def room_queue_push(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     skiped_user_name = await skip_queue_place(user_id)
     if skiped_user_name:
-        await message.answer(f"Вы пропустили вперед «<b>{skiped_user_name}</b>»")
+        await message.answer(f"Вы пропустили вперед «<b>{skiped_user_name}</b>»", parse_mode="HTML")
