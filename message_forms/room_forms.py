@@ -49,7 +49,10 @@ async def get_welcome_message(user_id, room: Room):
 
     queue_list = 'Очередь:'
     if role == UserRoles.User:
-        users_names = await get_queue_users(room.room_id)[:5]
+        users_names = await get_queue_users(room.room_id)
+        if len(users_names) > 5:
+            users_names = await get_queue_users(room.room_id)[:5]
+
         if len(users_names) < 1:
             queue_list = ''
         for i, user_name in enumerate(users_names):
