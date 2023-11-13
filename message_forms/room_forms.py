@@ -47,7 +47,7 @@ async def get_welcome_message(user_id, room: Room):
     if user_id in room.queue:
         place_message = f'Вы в очереди на {room.queue.index(user_id) + 1} месте.'
 
-    queue_list = 'Очередь:'
+    queue_list = 'Очередь:\n'
     if role == UserRoles.User:
         users_names = await get_queue_users(room.room_id)
         if len(users_names) > 5:
@@ -56,7 +56,7 @@ async def get_welcome_message(user_id, room: Room):
         if len(users_names) < 1:
             queue_list = ''
         for i, user_name in enumerate(users_names):
-            queue_list += f'{i + 1}. {user_name}'
+            queue_list += f'{i + 1}. {user_name}\n'
 
     role_to_welcome_text = {
         UserRoles.Admin:  f"📖 Комната «<b>{room_name}</b>»\n{room_users_mesg}\n"
