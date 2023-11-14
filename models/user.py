@@ -22,6 +22,8 @@ class User:
 
         # Cache only
         self.assigned_user_id = ''
+        self.nickname = ''
+        self.pc_num = ''
 
         self.name = name
 

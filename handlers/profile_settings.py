@@ -57,7 +57,7 @@ async def profile_change_name(message: types.Message, state: FSMContext):
     Переход в состояние изменения пользовательского имени
     '''
     await state.set_state(RoomVisiterState.CHANGE_PROFILE_NAME)
-    await message.answer(f"✏️ Введите новое имя (Имя Фамилия №ПК):", reply_markup=types.ReplyKeyboardRemove())
+    await message.answer(f"✏️ 1. Введите новое имя (Имя Фамилия):", reply_markup=types.ReplyKeyboardRemove())
 
 
 @router.message(F.text.lower() == "назад", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
@@ -83,8 +83,61 @@ async def profile_settings(message: types.Message):
 async def change_user_name_state(message: types.Message, state: FSMContext):
     '''
     Подтверждение изменения имени
+
     '''
-    await change_user_name(message.from_user.id, message.text)
-    log_user_info(message.from_user.id, f'Changed name to: {message.text}')
-    await message.answer(f"✅ Имя успешно изменено на {message.text}")
-    await profile_settings_state(message, state)
+    input_name = message.text
+    if not input_name.replace(' ', '').isalpha():
+        await message.answer(f"Неверный формат имени\n✏️ 1. Введите новое имя (Имя Фамилия):")
+        return
+
+    if 'Мод' in input_name or 'мод' in input_name:
+        print('мод')
+        import re
+        replace_regex = re.compile(re.escape('мод'), re.IGNORECASE)
+        user_name = replace_regex.sub('', input_name)
+        user_name = '⭐ ' + user_name
+        print(user_name)
+        await change_user_name(message.from_user.id, user_name)
+        log_user_info(message.from_user.id, f'Changed name to: {message.text}')
+        await message.answer(f"✅ Имя успешно изменено на {input_name}")
+        await profile_settings_state(message, state)
+        return
+
+    if 'Адм' in input_name or 'адм' in input_name:
+        import re
+        replace_regex = re.compile(re.escape('адм'), re.IGNORECASE)
+        user_name = replace_regex.sub('', input_name)
+        user_name = '⭐ ' + user_name
+        print(user_name)
+        await change_user_name(message.from_user.id, user_name)
+        log_user_info(message.from_user.id, f'Changed name to: {message.text}')
+        await message.answer(f"✅ Имя успешно изменено на {input_name}")
+        await profile_settings_state(message, state)
+        return
+
+    print(len(input_name.split(' ')))
+    if 1 < len(input_name.split(' ')) < 3:
+        print('юсер')
+        user: User = await get_user(message.from_user.id)
+        user.nickname = message.text
+        await message.answer(f"✏️ 2. Введите номер компьютера, за которым вы сидите:")
+        await state.set_state(RoomVisiterState.CHANGE_PROFILE_NAME_PC)
+    else:
+        await message.answer(f"Неверный формат имени\n✏️ 1. Введите новое имя (Имя Фамилия):")
+
+
+@router.message(RoomVisiterState.CHANGE_PROFILE_NAME_PC)
+async def change_user_name_state(message: types.Message, state: FSMContext):
+    '''
+    Подтверждение изменения имени
+    '''
+    if message.text.isdigit():
+        user: User = await get_user(message.from_user.id)
+        user.pc_num = message.text
+        user_name = user.nickname + ' ' + user.pc_num
+        await change_user_name(message.from_user.id, user_name)
+        log_user_info(message.from_user.id, f'Changed name to: {message.text}')
+        await message.answer(f"✅ Имя успешно изменено на {user.name}")
+        await profile_settings_state(message, state)
+    else:
+        await message.answer(f"Неверный формат номера компьютера\n✏️ 2. Введите номер компьютера, за которым вы сидите:")
