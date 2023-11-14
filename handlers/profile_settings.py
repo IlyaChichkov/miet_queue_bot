@@ -5,11 +5,11 @@ from bot_conf.bot_logging import log_user_info
 from firebase_manager.firebase import change_user_name, get_user_name
 from handlers.main_screens import start_command
 from handlers.room_actions import RoomVisiterState
-from keyboards.profile_settings_kb import get_settings_kb
+from keyboards.profile_settings_kb import get_settings_kb, get_delete_profile_kb
 from models.note import export_study_notes_by_user
 from models.room import Room
 from models.server_rooms import get_room
-from models.server_users import get_user
+from models.server_users import get_user, remove_user_from_db
 from models.user import User
 from roles.check_user_role import IsAdmin, IsModerator
 
@@ -34,6 +34,21 @@ async def profile_notes(message: types.Message, state: FSMContext):
     message_data = export_study_notes_by_user(room.study_notes, user.user_id)
     await message.answer(message_data, parse_mode="HTML")
     await profile_settings_state(message, state)
+
+
+@router.message(F.text.lower() == "удалить профиль", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
+async def profile_delete(message: types.Message, state: FSMContext):
+    kb = await get_delete_profile_kb(message.from_user.id)
+    await message.answer(f"Вы уверены что хотите удалить профиль?", reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("delete_profile"), RoomVisiterState.PROFILE_SETTINGS_SCREEN)
+async def profile_delete(callback: types.CallbackQuery, state: FSMContext):
+    user_id = callback.data.split('#')[1]
+    if await remove_user_from_db(user_id):
+        await callback.message.answer(f"Профиль успешно удален!")
+    else:
+        await callback.message.answer(f"Возникла ошибка при удалении профиля.")
 
 
 @router.message(F.text.lower() == "изменить имя", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
