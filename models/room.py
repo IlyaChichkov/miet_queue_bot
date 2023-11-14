@@ -130,7 +130,7 @@ class Room:
     async def queue_remove(self, user_id):
         await self.queue_remove_task(int(user_id))
         asyncio.create_task(update_room_event.fire(self))
-        await update_queue_event.fire(self.room_id, user_id)
+        asyncio.create_task(update_queue_event.fire(self.room_id, user_id))
 
     async def queue_remove_task(self, user_id):
         if user_id in self.queue:
@@ -146,7 +146,7 @@ class Room:
     async def queue_clear(self):
         # await (self.queue_clear_task())
         self.queue.clear()
-        await update_queue_event.fire(self.room_id, None)
+        asyncio.create_task(update_queue_event.fire(self.room_id, None))
         asyncio.create_task(update_room_event.fire(self))
 
     async def queue_clear_task(self):
@@ -174,7 +174,7 @@ class Room:
         # if user_id not in self.admins:
         if user_id in self.queue:
             self.queue.remove(user_id)
-            await update_queue_event.fire(self.room_id, user_id)
+            asyncio.create_task(update_queue_event.fire(self.room_id, user_id))
         self.role_to_list(self.get_user_role(user_id)).remove(user_id)
         user: User = await get_user(user_id)
         await user.leave_room()
@@ -196,7 +196,7 @@ class Room:
                 self.queue[user_index] = pass_user_id
                 self.queue[user_index + 1] = user_id
                 asyncio.create_task(update_room_event.fire(self))
-                await update_queue_event.fire(self.room_id, None)
+                asyncio.create_task(update_queue_event.fire(self.room_id, None))
                 await users_notify_queue_skipped.fire(pass_user_id, user.name, user_index + 1)
                 return pass_user_id
         return None

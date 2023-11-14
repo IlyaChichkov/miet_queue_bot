@@ -9,6 +9,7 @@ queue_enable_state_event = AsyncEvent()
 user_joined_event = AsyncEvent()
 user_leave_event = AsyncEvent()
 
+favorite_toggle_event = AsyncEvent()
 username_changed_event = AsyncEvent()
 
 user_joined_queue_event = AsyncEvent()

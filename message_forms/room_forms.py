@@ -30,16 +30,34 @@ async def get_join_queue_form(user_id):
 
     return f""
 
+
+def format_user_count(count):
+    if count % 10 == 1 and count % 100 != 11:
+        word_form = 'пользователь'
+    elif 2 <= count % 10 <= 4 and (count % 100 < 10 or count % 100 >= 20):
+        word_form = 'пользователя'
+    else:
+        word_form = 'пользователей'
+    return f"Еще {count} {word_form}"
+
+
 async def get_welcome_queue_message(room: Room):
     queue_list = 'Очередь:\n'
+    overflow = False
+    max_display_count = 5
     users_names = await get_queue_users(room.room_id)
-    if len(users_names) > 5:
-        users_names = await get_queue_users(room.room_id)[:5]
+    disp_count = len(users_names) - max_display_count
+    if disp_count > 0:
+        users_names = users_names[:max_display_count]
+        overflow = True
 
     if len(users_names) < 1:
         queue_list = ''
     for i, user_name in enumerate(users_names):
         queue_list += f'{i + 1}. {user_name}\n'
+
+    if overflow:
+        queue_list += format_user_count(disp_count)
 
     return queue_list
 
