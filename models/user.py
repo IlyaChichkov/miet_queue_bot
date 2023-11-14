@@ -104,10 +104,10 @@ class User:
         from models.server_rooms import get_room
         room = await get_room(self.room)
         if room and self.user_id in room.queue:
-            user_index = room.queue.index(self.user_id)
-            users_notify = room.queue[user_index + 1:]
-            if users_notify:
-                await users_notify_queue_changed_event.fire(users_notify)
+            #user_index = room.queue.index(self.user_id)
+            #users_notify = room.queue[user_index + 1:]
+            #if users_notify:
+            #    await users_notify_queue_changed_event.fire(users_notify)
 
             await room.queue_remove(self.user_id)
             await update_queue_event.fire(room.room_id, self.user_id)

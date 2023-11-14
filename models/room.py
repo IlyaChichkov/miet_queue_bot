@@ -137,7 +137,7 @@ class Room:
             user_index = self.queue.index(user_id)
             users_notify = self.queue[user_index + 1:]
             print(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
-            if users_notify:
+            if len(users_notify) > 0:
                 await users_notify_queue_changed_event.fire(users_notify)
 
             self.queue.remove(user_id)
