@@ -142,7 +142,7 @@ class Room:
                 users_notify = self.queue[user_index + 1:]
                 logging.error(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
                 if len(users_notify) > 0:
-                    await users_notify_queue_changed_event.fire(users_notify)
+                    await users_notify_queue_changed_event.fire(users_notify, user_index)
         except Exception as ex:
             logging.error(f'Queue remove task notification failed. Error: {ex}')
 
