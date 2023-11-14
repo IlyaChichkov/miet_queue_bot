@@ -133,14 +133,20 @@ class Room:
         asyncio.create_task(update_queue_event.fire(self.room_id, user_id))
 
     async def queue_remove_task(self, user_id):
-        if user_id in self.queue:
-            user_index = self.queue.index(user_id)
-            users_notify = self.queue[user_index + 1:]
-            print(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
-            if len(users_notify) > 0:
-                await users_notify_queue_changed_event.fire(users_notify)
+        if user_id not in self.queue:
+            return
 
-            self.queue.remove(user_id)
+        try:
+            user_index = self.queue.index(user_id)
+            if len(self.queue) > user_index + 1:
+                users_notify = self.queue[user_index + 1:]
+                logging.error(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
+                if len(users_notify) > 0:
+                    await users_notify_queue_changed_event.fire(users_notify)
+        except Exception as ex:
+            logging.error(f'Queue remove task notification failed. Error: {ex}')
+
+        self.queue.remove(user_id)
 
     ''' QUEUE CLEAR '''
     async def queue_clear(self):
