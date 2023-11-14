@@ -88,7 +88,7 @@ async def update_queue_event_handler(room_id, user_id):
     asyncio.create_task(update_welcome_room(room_id))
 
 
-async def users_notify_handler(users):
+async def users_notify_handler(users, users_before_count):
     if len(users) > 0:
         from models.server_users import get_user
         user = await get_user(users[0])
