@@ -160,6 +160,9 @@ async def user_join_room(user_id, room_code, user_role):
 
             room_key = room.room_id
             user: User = await get_user(user_id)
+            #has_default_name = await user.check_has_default_name()
+            #if has_default_name:
+            #    return {'error': "User has default name", 'error_text': 'Пожалуйста поменяйте стандартное имя в настройках профиля!'}
             await user.set_room(room_key)
             await user.update_role(role_to_room_list[user_role])
             await user_joined_event.fire(room, user_id, user_role)
@@ -200,16 +203,16 @@ async def skip_queue_place(user_id):
 
 async def exit_queue(user_id):
     user: User = await get_user(user_id)
-    logging.info(f'USER_{user_id} entered queue')
+    logging.info(f'USER_{user_id} left queue')
     await user.exit_queue()
 
 
 async def try_enter_queue(user_id):
     user: User = await get_user(user_id)
-    if user.has_default_name:
+    if user.check_has_default_name():
         return {'error': 'User has default name!', 'error_text': f'Нельзя присоединиться к очереди со стандартным именем - <b>{user.name}</b>!'}
 
-    logging.info(f'USER_{user_id} left queue')
+    logging.info(f'USER_{user_id} entered queue')
     place = await user.enter_queue()
     return { 'place': place }
 

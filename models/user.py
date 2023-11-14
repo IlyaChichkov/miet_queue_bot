@@ -17,6 +17,7 @@ class User:
         self.global_role = ''
         self.owned_rooms = []
         self.favorites = {}
+        self.has_verified_name = False
 
         self.has_default_name = True
 
@@ -60,6 +61,14 @@ class User:
 
     def check_has_default_name(self):
         self.has_default_name = self.default_name_regular(self.name)
+
+        pattern = re.compile(r"[A-Za-z0-9]+ [A-Za-z0-9]+ [0-9]+", re.IGNORECASE)
+        if self.has_verified_name:
+            return False
+        else:
+            if pattern.match(self.name) and self.current_role == 'users':
+                self.has_verified_name = True
+                return False
         return self.has_default_name
 
     async def update_name(self, new_name):
@@ -68,7 +77,8 @@ class User:
 
     def __update_name_task(self, new_name):
         self.name = new_name
-        self.check_has_default_name()
+        if not self.check_has_default_name():
+            self.has_verified_name = True
 
     ''' ADD OWNED ROOM '''
     async def add_owned_room(self, room_id):
@@ -197,5 +207,6 @@ class User:
             "current_role": self.current_role,
             "room": self.room,
             "own_rooms": self.owned_rooms,
-            "favorites": self.favorites
+            "favorites": self.favorites,
+            "has_verified_name": self.has_verified_name
         }

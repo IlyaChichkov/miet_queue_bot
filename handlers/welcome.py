@@ -2,7 +2,7 @@ from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
 from bot_conf.bot_logging import log_user_info
-from firebase_manager.firebase import db_create_room, user_join_room, enter_queue, admin_join_room
+from firebase_manager.firebase import db_create_room, user_join_room, enter_queue, admin_join_room, try_enter_queue
 import re
 
 from handlers.main_screens import start_command
@@ -45,7 +45,7 @@ async def show_rooms_list(callback: types.CallbackQuery, state: FSMContext):
             room: Room = joined_room['room']
             room_name = room.name
             if room.is_queue_on_join and room.is_queue_enabled:
-                await enter_queue(user_id)
+                await try_enter_queue(user_id)
 
             log_user_info(user_id, f'Joined room, name: {room_name} as user')
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
@@ -143,6 +143,7 @@ async def join_room(message: types.Message, state: FSMContext):
     '''
     Присоединение к комнате
     '''
+
     filter_join_code = re.findall(r"^[0-9]+$", message.text)
 
     check_user_code = len(filter_join_code) > 0 and len(filter_join_code[0]) == 4
@@ -155,7 +156,7 @@ async def join_room(message: types.Message, state: FSMContext):
             room: Room = joined_room['room']
             room_name = room.name
             if room.is_queue_on_join and room.is_queue_enabled:
-                await enter_queue(message.from_user.id)
+                await try_enter_queue(message.from_user.id)
 
             log_user_info(message.from_user.id, f'Joined room, name: {room_name} as user')
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)

@@ -55,6 +55,9 @@ def load_user_from_json(user_key, user_data) -> User:
 
     if 'current_role' in user_data:
         user.current_role = user_data['current_role']
+
+    if 'has_verified_name' in user_data:
+        user.has_verified_name = user_data['has_verified_name']
     return user
 
 
