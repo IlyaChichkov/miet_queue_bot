@@ -4,7 +4,8 @@ import logging
 from firebase_admin import db
 
 from bot_conf.bot_logging import log_database_update
-from events.queue_events import update_room_event, update_queue_event, users_notify_queue_changed_event
+from events.queue_events import update_room_event, update_queue_event, users_notify_queue_changed_event, \
+    users_notify_queue_skipped
 from models.note import StudyNote
 from models.server_users import get_user
 from models.user import User
@@ -129,23 +130,29 @@ class Room:
     async def queue_remove(self, user_id):
         await self.queue_remove_task(int(user_id))
         asyncio.create_task(update_room_event.fire(self))
-        await update_queue_event.fire(self.room_id, user_id)
+        asyncio.create_task(update_queue_event.fire(self.room_id, user_id))
 
     async def queue_remove_task(self, user_id):
-        if user_id in self.queue:
-            user_index = self.queue.index(user_id)
-            users_notify = self.queue[user_index + 1:]
-            print(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
-            if users_notify:
-                await users_notify_queue_changed_event.fire(users_notify)
+        if user_id not in self.queue:
+            return
 
-            self.queue.remove(user_id)
+        try:
+            user_index = self.queue.index(user_id)
+            if len(self.queue) > user_index + 1:
+                users_notify = self.queue[user_index + 1:]
+                logging.error(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
+                if len(users_notify) > 0:
+                    await users_notify_queue_changed_event.fire(users_notify, user_index)
+        except Exception as ex:
+            logging.error(f'Queue remove task notification failed. Error: {ex}')
+
+        self.queue.remove(user_id)
 
     ''' QUEUE CLEAR '''
     async def queue_clear(self):
         # await (self.queue_clear_task())
         self.queue.clear()
-        await update_queue_event.fire(self.room_id, None)
+        asyncio.create_task(update_queue_event.fire(self.room_id, None))
         asyncio.create_task(update_room_event.fire(self))
 
     async def queue_clear_task(self):
@@ -173,7 +180,7 @@ class Room:
         # if user_id not in self.admins:
         if user_id in self.queue:
             self.queue.remove(user_id)
-            await update_queue_event.fire(self.room_id, user_id)
+            asyncio.create_task(update_queue_event.fire(self.room_id, user_id))
         self.role_to_list(self.get_user_role(user_id)).remove(user_id)
         user: User = await get_user(user_id)
         await user.leave_room()
@@ -185,6 +192,21 @@ class Room:
 
     async def __update_name_task(self, new_name):
         self.name = new_name
+    ''' USER SKIP QUEUE PLACE '''
+    async def skip_queue_place(self, user: User):
+        user_id = user.user_id
+        if user_id in self.queue:
+            user_index = self.queue.index(user_id)
+            pass_user_id = self.queue[user_index + 1] if user_index + 1 < len(self.queue) else None
+            if pass_user_id:
+                self.queue[user_index] = pass_user_id
+                self.queue[user_index + 1] = user_id
+                asyncio.create_task(update_room_event.fire(self))
+                asyncio.create_task(update_queue_event.fire(self.room_id, None))
+                await users_notify_queue_skipped.fire(pass_user_id, user.name, user_index + 1)
+                return pass_user_id
+        return None
+
 
     ''' GET USERS LIST '''
     def get_users_list(self):

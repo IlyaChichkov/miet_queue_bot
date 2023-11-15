@@ -1,6 +1,6 @@
 import logging
 
-from firebase_manager.firebase import db_get_user_room, try_enter_queue
+from firebase_manager.firebase import db_get_user_room, try_enter_queue, get_queue_users
 from keyboards.room_keyboard import *
 from models.room import Room
 from models.server_users import get_user
@@ -31,6 +31,37 @@ async def get_join_queue_form(user_id):
     return f""
 
 
+def format_user_count(count):
+    if count % 10 == 1 and count % 100 != 11:
+        word_form = 'пользователь'
+    elif 2 <= count % 10 <= 4 and (count % 100 < 10 or count % 100 >= 20):
+        word_form = 'пользователя'
+    else:
+        word_form = 'пользователей'
+    return f"Еще {count} {word_form}"
+
+
+async def get_welcome_queue_message(room: Room):
+    queue_list = 'Очередь:\n'
+    overflow = False
+    max_display_count = 5
+    users_names = await get_queue_users(room.room_id)
+    disp_count = len(users_names) - max_display_count
+    if disp_count > 0:
+        users_names = users_names[:max_display_count]
+        overflow = True
+
+    if len(users_names) < 1:
+        queue_list = ''
+    for i, user_name in enumerate(users_names):
+        queue_list += f'{i + 1}. {user_name}\n'
+
+    if overflow:
+        queue_list += format_user_count(disp_count)
+
+    return queue_list
+
+
 async def get_welcome_message(user_id, room: Room):
     role = room.get_user_role(user_id)
     keyboard_func = role_to_welcome_kb.get(role, get_user_welcome_kb)
@@ -48,16 +79,19 @@ async def get_welcome_message(user_id, room: Room):
         place_message = f'Вы в очереди на {room.queue.index(user_id) + 1} месте.'
 
     role_to_welcome_text = {
-        UserRoles.Admin:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n{room_users_mesg}\n"
+        UserRoles.Admin:  f"📖 Комната «<b>{room_name}</b>»\n{room_users_mesg}\n"
                           f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
                           f"Студентов: <code>{join_code}</code>",
-        UserRoles.Moderator:  f"📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n{room_users_mesg}\n"
+        UserRoles.Moderator:  f"📖 Комната «<b>{room_name}</b>»\n{room_users_mesg}\n"
                               f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
                               f"Студентов: <code>{join_code}</code>",
-        UserRoles.User:  f'📖 Вы находитесь в меню комнаты «<b>{room_name}</b>»\n{room_users_mesg}\n{place_message}'
+        UserRoles.User:  f'📖 Комната «<b>{room_name}</b>»\n{room_users_mesg}\n{place_message}'
     }
     mesg_text = role_to_welcome_text.get(role, 'None')
-    return { 'mesg_text': mesg_text, 'keyboard': kb }
+    queue_list = None
+    if role == UserRoles.User:
+        queue_list = await get_welcome_queue_message(room)
+    return { 'mesg_text': mesg_text, 'keyboard': kb, 'queue_list': queue_list }
 
 
 async def get_username(user_id):

@@ -5,6 +5,18 @@ from dotenv import load_dotenv
 from bot_conf.bot import dp, bot
 from handlers import admin_commands, own_rooms_handler, welcome, room_actions, assign_screen, profile_settings, room_settings, room_welcome, main_screens, queue_screen, queue_settings
 
+''' DO NOT REMOVE | EVENTS '''
+import models.server_users
+import models.server_rooms
+import events.queue_state_handler
+import events.room_delete_handler
+import events.user_join_handler
+import events.user_left_handler
+import events.user_join_queue_handler
+import events.update_queue_handler
+import events.users_notify_queue_skipped_handler
+import bot_conf.bot_logging
+''' DO NOT REMOVE | EVENTS '''
 load_dotenv()
 
 

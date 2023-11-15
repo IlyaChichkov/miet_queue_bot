@@ -18,5 +18,6 @@ class RoomVisiterState(StatesGroup):
     # Profile settings
     PROFILE_SETTINGS_SCREEN = State()
     CHANGE_PROFILE_NAME = State()
+    CHANGE_PROFILE_NAME_PC = State()
 
 

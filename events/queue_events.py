@@ -1,5 +1,6 @@
 from events.event import AsyncEvent
 
+users_notify_queue_skipped = AsyncEvent()
 users_notify_queue_changed_event = AsyncEvent()
 
 update_queue_event = AsyncEvent()
@@ -8,6 +9,7 @@ queue_enable_state_event = AsyncEvent()
 user_joined_event = AsyncEvent()
 user_leave_event = AsyncEvent()
 
+favorite_toggle_event = AsyncEvent()
 username_changed_event = AsyncEvent()
 
 user_joined_queue_event = AsyncEvent()

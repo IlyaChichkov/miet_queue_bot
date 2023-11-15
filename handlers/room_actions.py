@@ -2,7 +2,7 @@ from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
 from events.room_announcement_handler import send_public_announcement
-from firebase_manager.firebase import leave_room, exit_queue
+from firebase_manager.firebase import leave_room, exit_queue, skip_queue_place, toggle_favorite_room
 from handlers.main_screens import start_command
 from handlers.queue_screen import queue_list_state, queue_pop_call
 from handlers.room_welcome import welcome_room_state
@@ -17,6 +17,15 @@ router = Router()
 async def exit_announcement(message: types.Message, state: FSMContext):
     await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
     await welcome_room_state(message)
+
+
+@router.message(F.text.lower() == "избранное", RoomVisiterState.ROOM_WELCOME_SCREEN)
+async def switch_favorite_state(message: types.Message, state: FSMContext):
+    added_to_favorites = await toggle_favorite_room(message.from_user.id)
+    if added_to_favorites:
+        await message.answer(f"Комната добавлена в избранное")
+    else:
+        await message.answer(f"Комната убрана из избранного")
 
 
 @router.message(IsAdmin(), F.text.lower() == "сделать уведомление", RoomVisiterState.ROOM_WELCOME_SCREEN)
@@ -81,3 +90,11 @@ async def room_queue_remove(message: types.Message, state: FSMContext):
     else:
         await message.answer(f"Вы уже не состоите в очереди") # TODO: Add error text
         await welcome_room_state(message)
+
+
+@router.message(IsUser(), F.text.lower() == "пропустить вперед", RoomVisiterState.ROOM_WELCOME_SCREEN)
+async def room_queue_push(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    skiped_user_name = await skip_queue_place(user_id)
+    if skiped_user_name:
+        await message.answer(f"Вы пропустили вперед «<b>{skiped_user_name}</b>»", parse_mode="HTML")

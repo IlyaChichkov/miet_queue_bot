@@ -25,6 +25,7 @@ async def notify_user_queue_switch(room_key, new_val):
     if new_val:
         builder.row(
             types.KeyboardButton(text="Занять место"),
+            types.KeyboardButton(text="Вернуться в меню")
         )
     else:
         builder.row(

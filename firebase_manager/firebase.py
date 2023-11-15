@@ -1,16 +1,18 @@
+import asyncio
+
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 import logging
 
-from events.queue_events import queue_enable_state_event, user_joined_event, username_changed_event
+from events.queue_events import queue_enable_state_event, user_joined_event, username_changed_event, update_queue_event
 from models.room import Room
 from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code, remove_room
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles
 
-cred = credentials.Certificate("firebase_manager/firebase.config.json")
+cred = credentials.Certificate("firebase.config.json")
 firebase_admin.initialize_app(cred, {
     'databaseURL': "https://queue-miet-default-rtdb.europe-west1.firebasedatabase.app/"
 })
@@ -45,6 +47,20 @@ async def db_get_user_room(user_id):
         error_message = f"Error getting user's room. Error: {str(e)}"
         logging.error(error_message)
         return { 'error': str(e) }
+
+
+async def toggle_favorite_room(user_id):
+    user: User = await get_user(user_id)
+    return await user.toggle_favorite_room(user.room)
+
+
+async def get_favorite_rooms_dict(user_id):
+    favorites = {}
+    user: User = await get_user(user_id)
+    for favorite_room, role in user.favorites.items():
+        room: Room = await get_room(favorite_room)
+        favorites[favorite_room] = {'room': room, 'role': role}
+    return favorites
 
 
 async def check_room_exist(room_id):
@@ -144,6 +160,9 @@ async def user_join_room(user_id, room_code, user_role):
 
             room_key = room.room_id
             user: User = await get_user(user_id)
+            #has_default_name = await user.check_has_default_name()
+            #if has_default_name:
+            #    return {'error': "User has default name", 'error_text': 'Пожалуйста поменяйте стандартное имя в настройках профиля!'}
             await user.set_room(room_key)
             await user.update_role(role_to_room_list[user_role])
             await user_joined_event.fire(room, user_id, user_role)
@@ -172,18 +191,28 @@ async def get_queue_users(room_key):
     return users_names
 
 
+async def skip_queue_place(user_id):
+    user: User = await get_user(user_id)
+    room: Room = await get_room(user.room)
+    skip_user_id = await room.skip_queue_place(user)
+    if skip_user_id:
+        skip_user: User = await get_user(skip_user_id)
+        return skip_user.name
+    return None
+
+
 async def exit_queue(user_id):
     user: User = await get_user(user_id)
-    logging.info(f'USER_{user_id} entered queue')
+    logging.info(f'USER_{user_id} left queue')
     await user.exit_queue()
 
 
 async def try_enter_queue(user_id):
     user: User = await get_user(user_id)
-    if user.has_default_name:
+    if user.check_has_default_name():
         return {'error': 'User has default name!', 'error_text': f'Нельзя присоединиться к очереди со стандартным именем - <b>{user.name}</b>!'}
 
-    logging.info(f'USER_{user_id} left queue')
+    logging.info(f'USER_{user_id} entered queue')
     place = await user.enter_queue()
     return { 'place': place }
 
@@ -204,6 +233,11 @@ async def is_user_in_queue(user_id):
     if room and user_id in room.queue:
         return True
     return False
+
+
+async def is_room_favorite(user_id):
+    user: User = await get_user(user_id)
+    return await user.is_favorite_room(user.room)
 
 
 async def get_room_queue_enabled_by_userid(user_id) -> bool:
@@ -239,7 +273,7 @@ async def generate_random_queue(room, queue_list):
         message_text += f'{i + 1}. {user.name}\n'
         await user.set_queue_enter(room, i)
 
-    # await update_queue_event.fire(room.room_id)
+    asyncio.create_task(update_queue_event.fire(room.room_id, None))
     return message_text
 
 

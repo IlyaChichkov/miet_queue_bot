@@ -7,6 +7,7 @@ from models.user import User
 
 
 async def joined_notify(room, user_id, place, notify_mod):
+    logging.info(f"Joined queue notification for USER_{user_id}")
     if notify_mod:
         await moderator_notify(room, user_id)
     await user_notify(room, user_id, place)

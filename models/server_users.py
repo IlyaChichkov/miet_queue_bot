@@ -50,8 +50,14 @@ def load_user_from_json(user_key, user_data) -> User:
     if 'room' in user_data:
         user.room = user_data['room']
 
+    if 'favorites' in user_data:
+        user.favorites = user_data['favorites']
+
     if 'current_role' in user_data:
         user.current_role = user_data['current_role']
+
+    if 'has_verified_name' in user_data:
+        user.has_verified_name = user_data['has_verified_name']
     return user
 
 
@@ -76,3 +82,17 @@ async def add_user(user: User):
 
 async def get_total_users_count():
     return len(server_users)
+
+
+async def remove_user_from_db(user_id):
+    try:
+        user = await get_user(user_id)
+        users_ref = db.reference('/users')
+        users_ref.child(user.db_key).delete()
+        logging.info(f'USER_{user_id} was deleted from database')
+        if user in server_users:
+            server_users.remove(user)
+        return True
+    except Exception as ex:
+        logging.error(f'Failed to delete USER_{user_id} from database')
+        return False

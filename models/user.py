@@ -4,7 +4,7 @@ import re
 
 from firebase_admin import db
 from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event, \
-    users_notify_queue_changed_event
+    users_notify_queue_changed_event, favorite_toggle_event
 
 
 class User:
@@ -16,11 +16,15 @@ class User:
         self.room: str = ''
         self.global_role = ''
         self.owned_rooms = []
+        self.favorites = {}
+        self.has_verified_name = False
 
         self.has_default_name = True
 
         # Cache only
         self.assigned_user_id = ''
+        self.nickname = ''
+        self.pc_num = ''
 
         self.name = name
 
@@ -57,6 +61,14 @@ class User:
 
     def check_has_default_name(self):
         self.has_default_name = self.default_name_regular(self.name)
+
+        pattern = re.compile(r"[A-Za-z0-9]+ [A-Za-z0-9]+ [0-9]+", re.IGNORECASE)
+        if self.has_verified_name:
+            return False
+        else:
+            if pattern.match(self.name) and self.current_role == 'users':
+                self.has_verified_name = True
+                return False
         return self.has_default_name
 
     async def update_name(self, new_name):
@@ -65,7 +77,8 @@ class User:
 
     def __update_name_task(self, new_name):
         self.name = new_name
-        self.check_has_default_name()
+        if not self.check_has_default_name():
+            self.has_verified_name = True
 
     ''' ADD OWNED ROOM '''
     async def add_owned_room(self, room_id):
@@ -104,19 +117,19 @@ class User:
         from models.server_rooms import get_room
         room = await get_room(self.room)
         if room and self.user_id in room.queue:
-            user_index = room.queue.index(self.user_id)
-            users_notify = room.queue[user_index + 1:]
-            if users_notify:
-                await users_notify_queue_changed_event.fire(users_notify)
+            #user_index = room.queue.index(self.user_id)
+            #users_notify = room.queue[user_index + 1:]
+            #if users_notify:
+            #    await users_notify_queue_changed_event.fire(users_notify)
 
             await room.queue_remove(self.user_id)
-            await update_queue_event.fire(room.room_id, self.user_id)
+            asyncio.create_task(update_queue_event.fire(room.room_id, self.user_id))
         return True
 
     ''' SET QUEUE ENTER '''
     async def set_queue_enter(self, room, place):
-        asyncio.create_task(user_joined_queue_event.fire(room, self.user_id, place + 1, False))
-        asyncio.create_task(self.__update_database())
+        res = await user_joined_queue_event.fire(room, self.user_id, place + 1, False)
+        #asyncio.create_task(self.__update_database())
 
     ''' ENTER QUEUE '''
     async def enter_queue(self, notify_mod: bool = True):
@@ -134,7 +147,7 @@ class User:
             place = len(room.queue) + 1
             await room.queue_add(self.user_id)
             asyncio.create_task(user_joined_queue_event.fire(room, self.user_id, place, notify_mod))
-            await update_queue_event.fire(room.room_id, self.user_id)
+            asyncio.create_task(update_queue_event.fire(room.room_id, self.user_id))
             return place
         return None
 
@@ -147,6 +160,37 @@ class User:
         self.current_role = ''
         self.room = ''
         await user_leave_event.fire(self.user_id)
+
+    ''' TOGGLE FAVORITE ROOM '''
+    async def toggle_favorite_room(self, room_id):
+        if room_id in self.favorites:
+            await self.remove_favorite_room(room_id)
+            logging.info(f"USER_{self.user_id} removed ROOM_{room_id} from favorites")
+            await favorite_toggle_event.fire(self.room)
+            return False
+        else:
+            await self.add_favorite_room(room_id)
+            logging.info(f"USER_{self.user_id} added ROOM_{room_id} to favorites")
+            await favorite_toggle_event.fire(self.room)
+            return True
+
+    ''' CHECK FAVORITE ROOM '''
+    async def is_favorite_room(self, room_id):
+        if room_id in self.favorites:
+            return True
+        return False
+
+    ''' ADD FAVORITE ROOM '''
+    async def add_favorite_room(self, room_id):
+        if not room_id in self.favorites:
+            self.favorites[room_id] = self.current_role
+            asyncio.create_task(self.__update_database())
+
+    ''' REMOVE FAVORITE ROOM '''
+    async def remove_favorite_room(self, room_id):
+        if room_id in self.favorites:
+            del self.favorites[room_id]
+            asyncio.create_task(self.__update_database())
 
     ''' ! UPDATE DATABASE ! '''
     async def __update_database(self):
@@ -162,5 +206,7 @@ class User:
             "name": self.name,
             "current_role": self.current_role,
             "room": self.room,
-            "own_rooms": self.owned_rooms
+            "own_rooms": self.owned_rooms,
+            "favorites": self.favorites,
+            "has_verified_name": self.has_verified_name
         }
