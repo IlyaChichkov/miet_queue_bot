@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 
 from aiogram.types import FSInputFile
 from firebase_admin import db
@@ -48,23 +49,40 @@ async def show_cache():
 
 async def __load_rooms():
     '''
-    Загрузка данных на сервер из БД
+    Загрузка данных комнта на сервер из БД
     '''
-    rooms_ref = db.reference(f'/rooms').get()
-    if rooms_ref is not None:
-        rooms_list = list(rooms_ref.items())
-        for room in rooms_list:
-            room_key, room_data = room
-            loaded_room = load_room_from_json(room_key, room_data)
-            await add_room(loaded_room)
+    logging.info('Loading rooms data from Firebase and caching it')
+    try:
+        rooms_ref = db.reference(f'/rooms').get()
+        if rooms_ref is not None:
+            rooms_list = list(rooms_ref.items())
+            for room in rooms_list:
+                room_key, room_data = room
+                loaded_room = load_room_from_json(room_key, room_data)
+                await add_room(loaded_room)
+    except Exception as ex:
+        logging.error(f'Failed to load rooms data from Firebase: {ex}')
+    finally:
+        logging.info('Caching completed!')
 
-    users_ref = db.reference(f'/users').get()
-    if users_ref is not None:
-        users_list = list(users_ref.items())
-        for user in users_list:
-            user_key, user_data = user
-            loaded_user = load_user_from_json(user_key, user_data)
-            await add_user(loaded_user)
+
+async def __load_users():
+    '''
+    Загрузка данных пользователей на сервер из БД
+    '''
+    logging.info('Loading users data from Firebase and caching it')
+    try:
+        users_ref = db.reference(f'/users').get()
+        if users_ref is not None:
+            users_list = list(users_ref.items())
+            for user in users_list:
+                user_key, user_data = user
+                loaded_user = load_user_from_json(user_key, user_data)
+                await add_user(loaded_user)
+    except Exception as ex:
+        logging.error(f'Failed to load users data from Firebase: {ex}')
+    finally:
+        logging.info('Caching completed!')
 
 
 async def add_teacher(teacher_id):
@@ -81,10 +99,16 @@ async def add_teacher(teacher_id):
 
 async def update_cache():
     await delete_cache()
-    await __load_rooms()
+    await load_cache()
 
 
 async def delete_cache():
     server_rooms.clear()
     server_users.clear()
     server_passwords.clear()
+
+
+async def load_cache():
+    print('Load cache')
+    await __load_rooms()
+    await __load_users()
