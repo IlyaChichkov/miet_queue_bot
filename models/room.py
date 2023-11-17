@@ -97,9 +97,12 @@ class Room:
 
     async def __queue_pop_task(self):
         if len(self.queue) > 0:
-            users_notify = self.queue[1:]
-            if users_notify:
-                await users_notify_queue_changed_event.fire(users_notify, 0)
+            try:
+                users_notify = self.queue[1:]
+                if users_notify:
+                    await users_notify_queue_changed_event.fire(users_notify, 0)
+            except Exception as ex:
+                logging.error(f'Failed to fire event of queue update to users: {ex}')
 
             return self.queue.pop(0)
         return None
