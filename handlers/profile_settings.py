@@ -105,7 +105,7 @@ async def change_user_name_state(message: types.Message, state: FSMContext):
         import re
         replace_regex = re.compile(re.escape('адм'), re.IGNORECASE)
         user_name = replace_regex.sub('', input_name)
-        user_name = '⭐ ' + user_name
+        user_name = '👑 ' + user_name
         await change_user_name(message.from_user.id, user_name)
         log_user_info(message.from_user.id, f'Changed name to: {message.text}')
         await message.answer(f"✅ Имя успешно изменено на {input_name}")
