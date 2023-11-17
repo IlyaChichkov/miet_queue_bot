@@ -98,9 +98,8 @@ class Room:
     async def __queue_pop_task(self):
         if len(self.queue) > 0:
             users_notify = self.queue[1:]
-            print(f"QUEUE: {self.queue} USERS NOTIFY: {users_notify}")
             if users_notify:
-                await users_notify_queue_changed_event.fire(users_notify)
+                await users_notify_queue_changed_event.fire(users_notify, 0)
 
             return self.queue.pop(0)
         return None
