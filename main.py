@@ -3,7 +3,8 @@ import logging
 
 from dotenv import load_dotenv
 from bot_conf.bot import dp, bot
-from handlers import admin_commands, own_rooms_handler, welcome, room_actions, assign_screen, profile_settings, room_settings, room_welcome, main_screens, queue_screen, queue_settings
+from handlers import admin_commands, own_rooms_handler, welcome, room_actions, assign_screen, profile_settings, \
+    room_settings, room_welcome, main_screens, queue_screen, queue_settings, addscore_screen
 from models.server_admin import load_cache
 
 ''' DO NOT REMOVE | EVENTS '''
@@ -32,6 +33,7 @@ async def main():
     dp.include_routers(room_settings.router)
     dp.include_routers(room_actions.router)
     dp.include_routers(room_welcome.router)
+    dp.include_routers(addscore_screen.router)
     dp.include_routers(queue_screen.router)
     dp.include_routers(assign_screen.router)
     await load_cache()
