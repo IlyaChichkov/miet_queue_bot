@@ -6,8 +6,10 @@ from aiogram.types import FSInputFile
 from firebase_admin import db
 from pathlib import Path
 
+from models.score import Score
 from models.server_passwords import server_passwords
 from models.server_rooms import server_rooms, load_room_from_json, add_room
+from models.server_score import usersScore
 from models.server_users import server_users, load_user_from_json, add_user, get_user
 from models.user import User
 
@@ -32,7 +34,16 @@ async def show_cache():
     '''
     Составление текста с кешем для отправки или записи в файл
     '''
-    message = 'Rooms:\n'
+    message = 'Score:\n'
+    num = 0
+    for user_id, scores_list in usersScore.scores.items():
+        score_dicts = [await score.to_dict() for score in scores_list]
+        r = json.dumps({user_id: score_dicts})
+        loaded_r = json.loads(r)
+        message += f' {num+1}) {json.dumps(loaded_r, indent=2, ensure_ascii=False)}\n'
+        num = num + 1
+
+    message += 'Rooms:\n'
     for num, room in enumerate(server_rooms):
         r = json.dumps(room.to_log())
         loaded_r = json.loads(r)

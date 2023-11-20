@@ -13,6 +13,8 @@ class RoomVisiterState(StatesGroup):
     # Assignment screen
     ROOM_ASSIGN_SCREEN = State()
     ASSIGN_NOTE_SCREEN = State()
+    # Score screen
+    ROOM_SCORE_SCREEN = State()
     # Announcement screen
     MAKE_ANNOUNCEMENT_SCREEN = State()
     # Profile settings
