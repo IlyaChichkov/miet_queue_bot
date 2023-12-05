@@ -10,6 +10,7 @@ from message_forms.welcome_form import get_welcome_form
 from models.server_users import get_user
 from models.user import User
 from roles.role_cache import users_role_cache
+from routing.router import handle_message
 from states.room_state import RoomVisiterState
 from states.welcome_state import WelcomeState
 
@@ -20,6 +21,11 @@ router = Router()
 async def any_text(message: Message, state: FSMContext):
     await message.answer(f"Возобновление сессии...")
     await start_command(message, state)
+
+
+@router.callback_query(F.data == 'show#main_menu')
+async def show_main_menu(message: Message, state: FSMContext):
+    await start_command(message.from_user.id, message, state)
 
 
 @router.message(Command("role"))
@@ -69,4 +75,4 @@ async def start_command(message: types.Message, state: FSMContext):
     '''
     logging.info(f'MAIN SCREEN | USER_{user.user_id} | {message.from_user.username}')
     form_message, form_kb = await get_welcome_form(message.from_user.first_name, message.from_user.id)
-    await message.answer_photo(start_image, form_message, reply_markup=form_kb)
+    await handle_message(user.user_id, form_message, reply_markup=form_kb)

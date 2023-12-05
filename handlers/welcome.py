@@ -11,6 +11,7 @@ from keyboards.welcome_keyboard import get_welcome_kb
 from message_forms.welcome_form import get_favorites_form
 from models.room import Room
 from roles.special_roles import check_access_level, GlobalRoles
+from routing.router import handle_message
 from states.room_state import RoomVisiterState
 from states.welcome_state import WelcomeState
 
@@ -22,6 +23,13 @@ async def show_favorites_list(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     message_form, kb = await get_favorites_form(user_id)
     await message.answer(message_form, reply_markup=kb)
+
+
+@router.callback_query(F.data == "show#favorite", WelcomeState.WELCOME_SCREEN)
+async def show_favorites_list(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    message_form, kb = await get_favorites_form(user_id)
+    await handle_message(user_id, message_form, reply_markup=kb)
 
 
 @router.callback_query(F.data.startswith("join_fav_room"), WelcomeState.WELCOME_SCREEN)

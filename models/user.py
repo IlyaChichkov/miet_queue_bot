@@ -2,6 +2,7 @@ import asyncio
 import logging
 import re
 
+import aiogram.types
 from firebase_admin import db
 from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event, \
     users_notify_queue_changed_event, favorite_toggle_event
@@ -22,6 +23,7 @@ class User:
         self.has_default_name = True
 
         # Cache only
+        self.last_message: aiogram.types.Message = None
         self.assigned_user_id = ''
         self.nickname = ''
         self.pc_num = ''
@@ -35,6 +37,9 @@ class User:
             self.global_role = global_roles[str(self.user_id)]
         else:
             self.global_role = None
+
+    async def set_last_message(self, last_message):
+        self.last_message = last_message
 
     async def get_global_role(self):
         if self.global_role == '':

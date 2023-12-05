@@ -23,94 +23,105 @@ async def get_owner_rooms_kb(user_id):
 
 async def get_welcome_kb(user_id):
     global_role: GlobalRoles = await get_access_level(user_id)
+    builder = InlineKeyboardBuilder()
 
     if global_role is None:
-        builder = ReplyKeyboardBuilder()
-
         builder.row(
-            types.KeyboardButton(
-                text="Избранное"
+            types.InlineKeyboardButton(
+                text="Избранное",
+                callback_data='show#favorite'
             ),
-            types.KeyboardButton(
-                text="Присоединиться к комнате"
+            types.InlineKeyboardButton(
+                text="Присоединиться к комнате",
+                callback_data='action#join_room'
             )
         )
-
         builder.row(
-            types.KeyboardButton(
-                text="Профиль"
+            types.InlineKeyboardButton(
+                text="Профиль",
+                callback_data='show#profile'
             )
         )
         return builder.as_markup(resize_keyboard=True, input_field_placeholder="")
 
     if global_role is GlobalRoles.Developer:
-        builder = ReplyKeyboardBuilder()
-
         builder.row(
-            types.KeyboardButton(
-                text="Избранное"
+            types.InlineKeyboardButton(
+                text="Избранное",
+                callback_data='show#favorite'
             ),
-            types.KeyboardButton(
-                text="Мои комнаты"
+            types.InlineKeyboardButton(
+                text="Мои комнаты",
+                callback_data='show#my_rooms'
             )
         )
 
         builder.row(
-            types.KeyboardButton(
-                text="Создать комнату"
+            types.InlineKeyboardButton(
+                text="Создать комнату",
+                callback_data='action#create_room'
             ),
-            types.KeyboardButton(
-                text="Присоединиться к комнате"
+            types.InlineKeyboardButton(
+                text="Присоединиться к комнате",
+                callback_data='action#join_room'
             )
         )
 
         builder.row(
-            types.KeyboardButton(
-                text="Профиль"
+            types.InlineKeyboardButton(
+                text="Профиль",
+                callback_data='show#profile'
             )
         )
         builder.row(
-            types.KeyboardButton(
-                text="Посмотреть кэш"
+            types.InlineKeyboardButton(
+                text="Посмотреть кэш",
+                callback_data='show#server_cache'
             ),
-            types.KeyboardButton(
-                text="Обновить кэш"
+            types.InlineKeyboardButton(
+                text="Обновить кэш",
+                callback_data='action#update_server_cache'
             )
         )
         builder.row(
-            types.KeyboardButton(
-                text="Удалить кэш"
+            types.InlineKeyboardButton(
+                text="Удалить кэш",
+                callback_data='action#delete_server_cache'
             ),
-            types.KeyboardButton(
-                text="Добавить преподавателя"
+            types.InlineKeyboardButton(
+                text="Добавить преподавателя",
+                callback_data='action#add_tutor'
             )
         )
         return builder.as_markup(resize_keyboard=True, input_field_placeholder="")
 
     if global_role is GlobalRoles.Teacher:
-        builder = ReplyKeyboardBuilder()
-
         builder.row(
-            types.KeyboardButton(
-                text="Избранное"
+            types.InlineKeyboardButton(
+                text="Избранное",
+                callback_data='show#favorite'
             ),
-            types.KeyboardButton(
-                text="Мои комнаты"
+            types.InlineKeyboardButton(
+                text="Мои комнаты",
+                callback_data='show#my_rooms'
             )
         )
 
         builder.row(
-            types.KeyboardButton(
-                text="Создать комнату"
+            types.InlineKeyboardButton(
+                text="Создать комнату",
+                callback_data='action#create_room'
             ),
-            types.KeyboardButton(
-                text="Присоединиться к комнате"
+            types.InlineKeyboardButton(
+                text="Присоединиться к комнате",
+                callback_data='action#join_room'
             )
         )
 
         builder.row(
-            types.KeyboardButton(
-                text="Профиль"
+            types.InlineKeyboardButton(
+                text="Профиль",
+                callback_data='show#profile'
             )
         )
         return builder.as_markup(resize_keyboard=True, input_field_placeholder="")
@@ -134,5 +145,11 @@ async def get_favorite_rooms_kb(user_id):
             )
         )
 
+    builder.row(
+        types.InlineKeyboardButton(
+            text=f'Назад',
+            callback_data=f'show#main_menu'
+        )
+    )
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True, input_field_placeholder="")
 
