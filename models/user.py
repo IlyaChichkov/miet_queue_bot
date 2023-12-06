@@ -23,6 +23,7 @@ class User:
         self.has_default_name = True
 
         # Cache only
+        self.create_new_message = True
         self.last_message: aiogram.types.Message = None
         self.assigned_user_id = ''
         self.nickname = ''
@@ -40,6 +41,7 @@ class User:
 
     async def set_last_message(self, last_message):
         self.last_message = last_message
+        self.create_new_message = False
 
     async def get_global_role(self):
         if self.global_role == '':
@@ -115,8 +117,9 @@ class User:
 
     ''' EXIT QUEUE '''
     async def exit_queue(self):
-        await (self.__exit_queue_task())
+        result = await (self.__exit_queue_task())
         await (self.__update_database())
+        return result
 
     async def __exit_queue_task(self):
         from models.server_rooms import get_room
