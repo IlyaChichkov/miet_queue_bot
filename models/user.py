@@ -6,6 +6,7 @@ import aiogram.types
 from firebase_admin import db
 from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event, \
     users_notify_queue_changed_event, favorite_toggle_event
+from routing.user_routes import UserRoutes
 
 
 class User:
@@ -23,6 +24,7 @@ class User:
         self.has_default_name = True
 
         # Cache only
+        self.route: UserRoutes = UserRoutes.Empty
         self.create_new_message = True
         self.last_message: aiogram.types.Message = None
         self.assigned_user_id = ''
@@ -30,6 +32,9 @@ class User:
         self.pc_num = ''
 
         self.name = name
+
+    async def set_route(self, new_route: UserRoutes):
+        self.route: UserRoutes = new_route
 
     async def check_global_role(self):
         global_roles_ref = db.reference('/special_roles')
