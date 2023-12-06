@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import types
 
 from bot_conf.bot import bot
@@ -20,19 +22,21 @@ async def handle_message(user_id, message_text, reply_markup=None):
         successfully_updated = False
         # Пробуем обновить старое сообщение
         try:
-            print(f"Edit try")
+            successfully_updated = True
             await bot.edit_message_text(chat_id=user_id, message_id=last_message.message_id, text=message_text, reply_markup=kb, parse_mode="HTML")
         except Exception as ex:
-            print(ex)
-        finally:
-            successfully_updated = True
+            if "message is not modified" in str(ex):
+                logging.warning(ex)
+            else:
+                logging.error(ex)
+                successfully_updated = False
 
         if not successfully_updated:
             # Не получилось обновить - создаем новое сообщение
             try:
                 created_message = await bot.send_message(user_id, message_text, reply_markup=kb, parse_mode="HTML")
             except Exception as ex:
-                print(ex)
+                logging.error(ex)
             finally:
                 await user.set_last_message(created_message)
 
@@ -42,12 +46,12 @@ async def handle_message(user_id, message_text, reply_markup=None):
             try:
                 await bot.delete_message(user_id, last_message.message_id)
             except Exception as ex:
-                print(ex)
+                logging.error(ex)
         # Создаем новое сообщение
         try:
             created_message = await bot.send_message(user_id, message_text, reply_markup=kb, parse_mode="HTML")
         except Exception as ex:
-            print(ex)
+            logging.error(ex)
         finally:
             await user.set_last_message(created_message)
 
@@ -55,13 +59,19 @@ async def handle_message(user_id, message_text, reply_markup=None):
 async def send_document(user_id, document, message_text):
     user: User = await get_user(user_id)
     user.create_new_message = True
-    await bot.send_document(user_id, document=document, caption=message_text, parse_mode="HTML")
+    try:
+        await bot.send_document(user_id, document=document, caption=message_text, parse_mode="HTML")
+    except Exception as ex:
+        logging.error(ex)
 
 
 async def send_message(user_id, message_text):
     user: User = await get_user(user_id)
     user.create_new_message = True
-    await bot.send_message(user_id, message_text, parse_mode="HTML")
+    try:
+        await bot.send_message(user_id, message_text, parse_mode="HTML")
+    except Exception as ex:
+        logging.error(ex)
 
 
 async def answer_message(message: types.Message, message_text):
