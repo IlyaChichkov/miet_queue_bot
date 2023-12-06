@@ -24,7 +24,7 @@ def get_queue_kb(is_queue_empty):
     if not is_queue_empty:
         builder.row(
             types.InlineKeyboardButton(text="Принять первого",
-                                       callback_data="queue_pop")
+                                       callback_data="action#queue_pop")
         )
 
 

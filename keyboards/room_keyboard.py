@@ -2,25 +2,29 @@ from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
 from firebase_manager.firebase import is_user_in_queue, get_room_queue_enabled_by_userid
+from models.server_users import get_user
 
 
 async def get_admin_welcome_kb(user_id):
     builder = InlineKeyboardBuilder()
 
     builder.row(
+        types.InlineKeyboardButton(text="Список пользователей",
+                                   callback_data='show#users_list'),
         types.InlineKeyboardButton(text="Посмотреть очередь",
-                                   callback_data='show#queue_list'),
-        types.InlineKeyboardButton(text="Принять первого в очереди",
-                                   callback_data='action#queue_pop')
+                                   callback_data='show#queue_list')
     )
 
-    builder.row(types.InlineKeyboardButton(text="Настройки комнаты",
-                                           callback_data='show#room_settings'))
+    builder.row(
+        types.InlineKeyboardButton(
+            text="Принять первого в очереди",
+            callback_data='action#queue_pop')
+    )
     builder.row(
         types.InlineKeyboardButton(text="Сделать уведомление",
                                    callback_data='action#make_announcement'),
-        types.InlineKeyboardButton(text="Список пользователей",
-                                   callback_data='show#users_list')
+        types.InlineKeyboardButton(text="Настройки комнаты",
+                                   callback_data='show#room_settings')
     )
 
     builder.row(
@@ -42,14 +46,20 @@ async def get_moderator_welcome_kb(user_id):
     builder = InlineKeyboardBuilder()
 
     builder.row(
-        types.InlineKeyboardButton(text="Посмотреть очередь",
-                                   callback_data='show#queue_list'),
-        types.InlineKeyboardButton(text="Принять первого в очереди",
-                                   callback_data='action#queue_pop')
+        types.InlineKeyboardButton(
+            text="Список пользователей",
+            callback_data='show#users_list'
+        ),
+        types.InlineKeyboardButton(
+            text="Посмотреть очередь",
+            callback_data='show#queue_list'
+        )
     )
 
-    builder.row(types.InlineKeyboardButton(text="Список пользователей",
-                                           callback_data='show#users_list'))
+    builder.row(types.InlineKeyboardButton(
+        text="Принять первого в очереди",
+        callback_data='action#queue_pop'
+    ))
 
     builder.row(
         types.InlineKeyboardButton(
@@ -69,7 +79,10 @@ async def get_moderator_welcome_kb(user_id):
 async def get_user_welcome_kb(user_id):
     builder = InlineKeyboardBuilder()
 
-    user_in_queue = await is_user_in_queue(user_id)
+    result = await is_user_in_queue(user_id)
+    user_in_queue = result['result']
+    user_place = result['place']
+    queue_len = result['len']
 
     queue_enabled = await get_room_queue_enabled_by_userid(user_id)
     if queue_enabled:
@@ -77,10 +90,24 @@ async def get_user_welcome_kb(user_id):
             builder.row(types.InlineKeyboardButton(text="Занять место",
                                                    callback_data='action#enter_queue'))
         else:
-            builder.row(types.InlineKeyboardButton(text="Пропустить вперед",
-                                                   callback_data='action#skip_turn'),
-                        types.InlineKeyboardButton(text="Выйти из очереди",
-                                                   callback_data='action#exit_queue'))
+            if user_place + 1 < queue_len:
+                builder.row(
+                    types.InlineKeyboardButton(
+                        text="Пропустить вперед",
+                        callback_data='action#skip_turn'
+                    ),
+                    types.InlineKeyboardButton(
+                        text="Выйти из очереди",
+                        callback_data='action#exit_queue'
+                    )
+                )
+            else:
+                builder.row(
+                    types.InlineKeyboardButton(
+                        text="Выйти из очереди",
+                        callback_data='action#exit_queue'
+                    )
+                )
 
     builder.row(
         types.InlineKeyboardButton(

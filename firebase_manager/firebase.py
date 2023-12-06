@@ -240,8 +240,8 @@ async def is_autoqueue_enabled(user_id):
 async def is_user_in_queue(user_id):
     room = await get_room_by_key(await get_user_room_key(user_id))
     if room and user_id in room.queue:
-        return True
-    return False
+        return {'result': True, 'place': room.queue.index(user_id), 'len': len(room.queue)}
+    return {'result': False, 'place': None, 'len': None}
 
 
 async def is_room_favorite(user_id):
@@ -324,10 +324,11 @@ async def change_user_name(user_id, new_name):
         user: User = await get_user(user_id)
         await user.update_name(new_name)
         await username_changed_event.fire()
-        return True
     except Exception as e:
         logging.error(f'Update user name error: {str(e)}')
         return False
+    finally:
+        return True
 
 
 async def is_user_name_default(user_id):

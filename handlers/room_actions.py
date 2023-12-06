@@ -4,11 +4,14 @@ from aiogram.fsm.context import FSMContext
 from events.room_announcement_handler import send_public_announcement
 from firebase_manager.firebase import leave_room, exit_queue, skip_queue_place, toggle_favorite_room
 from handlers.main_screens import start_command
-from handlers.queue_screen import queue_list_state, queue_pop_call
+from handlers.queue_screen import queue_list_state, queue_pop_handler
 from handlers.room_welcome import welcome_room_state
 from message_forms.room_forms import get_users_list_form, get_join_queue_form, get_announcement_form
+from models.server_users import get_user
+from models.user import User
 from roles.check_user_role import IsModerator, IsAdmin, IsUser
 from routing.router import handle_message, send_message
+from routing.user_routes import UserRoutes
 from states.room_state import RoomVisiterState
 
 router = Router()
@@ -38,16 +41,6 @@ async def switch_favorite_state_call(callback: types.CallbackQuery, state: FSMCo
         await callback.answer(f"Комната убрана из избранного")
 
 
-@router.message(IsAdmin(), F.text.lower() == "сделать уведомление", RoomVisiterState.ROOM_WELCOME_SCREEN)
-async def make_announcement(message: types.Message, state: FSMContext):
-    '''
-    Создание уведомления для всех участников комнаты
-    '''
-    await state.set_state(RoomVisiterState.MAKE_ANNOUNCEMENT_SCREEN)
-    form_message, form_kb = await get_announcement_form(message.from_user.id)
-    await message.answer(form_message, reply_markup=form_kb, parse_mode="HTML")
-
-
 @router.callback_query(F.data == "action#make_announcement", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def make_announcement(callback: types.CallbackQuery, state: FSMContext):
     '''
@@ -55,6 +48,8 @@ async def make_announcement(callback: types.CallbackQuery, state: FSMContext):
     '''
     await state.set_state(RoomVisiterState.MAKE_ANNOUNCEMENT_SCREEN)
     form_message, form_kb = await get_announcement_form(callback.from_user.id)
+    user: User = await get_user(callback.from_user.id)
+    await user.set_route(UserRoutes.MakeAnnouncement)
     await handle_message(callback.from_user.id, form_message, reply_markup=form_kb)
 
 
@@ -68,28 +63,17 @@ async def send_announcement(message: types.Message, state: FSMContext):
     await welcome_room_state(message)
 
 
-@router.message(IsAdmin(), F.text.lower() == "список пользователей", RoomVisiterState.ROOM_WELCOME_SCREEN)
-@router.message(IsModerator(), F.text.lower() == "список пользователей", RoomVisiterState.ROOM_WELCOME_SCREEN)
-async def room_users_list(message: types.Message, state: FSMContext):
-    form_message, form_kb = await get_users_list_form(message.from_user.id)
-    await message.answer(form_message, parse_mode="HTML")
-
-
 @router.callback_query(F.data == "show#users_list", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def room_users_list_call(callback: types.CallbackQuery, state: FSMContext):
     form_message, form_kb = await get_users_list_form(callback.from_user.id)
+    user: User = await get_user(callback.from_user.id)
+    await user.set_route(UserRoutes.RoomUsersList)
     await handle_message(callback.from_user.id, form_message, form_kb)
 
 
-@router.message(IsAdmin(), F.text.lower() == "принять первого в очереди", RoomVisiterState.ROOM_WELCOME_SCREEN)
-@router.message(IsModerator(), F.text.lower() == "принять первого в очереди", RoomVisiterState.ROOM_WELCOME_SCREEN)
-async def room_get_queue_pop(message: types.Message, state: FSMContext):
-    await queue_pop_call(message, state)
-
-
-@router.callback_query(F.data == "action#queue_pop", RoomVisiterState.ROOM_WELCOME_SCREEN)
+@router.callback_query(F.data == "action#queue_pop")
 async def room_get_queue_pop(callback: types.CallbackQuery, state: FSMContext):
-    await queue_pop_call(callback, state)
+    await queue_pop_handler(callback, state)
 
 
 @router.message(IsAdmin(), F.text.lower() == "посмотреть очередь", RoomVisiterState.ROOM_WELCOME_SCREEN)

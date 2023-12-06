@@ -13,7 +13,8 @@ from models.server_users import get_user
 from models.user import User
 from roles.check_user_role import IsAdmin, IsModerator
 from keyboards.queue_settings_keyboard import get_queue_settings_kb, get_remove_user_kb
-from routing.router import handle_message
+from routing.router import handle_message, send_message
+from routing.user_routes import UserRoutes
 from states.room_state import RoomVisiterState
 from bot_conf.bot import bot
 
@@ -21,7 +22,7 @@ router = Router()
 
 
 @router.callback_query(F.data== "action#random_queue")
-async def queue_settings(callback: types.CallbackQuery, state: FSMContext):
+async def queue_generate_random(callback: types.CallbackQuery, state: FSMContext):
     '''
     Генерация случайной очереди из пользователей
     '''
@@ -31,7 +32,6 @@ async def queue_settings(callback: types.CallbackQuery, state: FSMContext):
     users_list = room.users[:]
     random.shuffle(users_list)
     message_text = await generate_random_queue(room, users_list)
-
 
     builder = InlineKeyboardBuilder()
 
@@ -62,21 +62,15 @@ async def queue_settings(message: types.Message, state: FSMContext):
     await message.answer(f"<b>Случайный список:</b>\n{message_text}", parse_mode="HTML")
 
 
-@router.message(IsAdmin(), F.text.lower() == "настройки очереди")
-@router.message(IsModerator(), F.text.lower() == "настройки очереди")
-async def queue_settings(message: types.Message, state: FSMContext):
-    await delete_cache_messages(message.from_user.id)
-    await state.set_state(RoomVisiterState.ROOM_QUEUE_SETTINGS_SCREEN)
-    kb = await get_queue_settings_kb()
-    await message.answer("Выберите действие:", reply_markup=kb, parse_mode="HTML")
-
-
 @router.callback_query(F.data == "show#queue_settings")
 async def queue_settings(message: types.Message, state: FSMContext):
     await delete_cache_messages(message.from_user.id)
     await state.set_state(RoomVisiterState.ROOM_QUEUE_SETTINGS_SCREEN)
     kb = await get_queue_settings_kb()
     await handle_message(message.from_user.id, "Настройки очереди:", reply_markup=kb)
+
+    user: User = await get_user(message.from_user.id)
+    await user.set_route(UserRoutes.QueueSettings)
 
 
 @router.callback_query(F.data == "action#remove_from_queue", RoomVisiterState.ROOM_QUEUE_SETTINGS_SCREEN)
@@ -123,12 +117,12 @@ async def queue_remove_user(callback: CallbackQuery, state: FSMContext):
     kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
     logging.info(f'USER_{removed_user.user_id} was removed from queue by USER_{init_user.user_id}')
     try:
-        await bot.send_message(queue_remove_user_id, f'<b>{init_user.name}</b> убрал вас из очереди.',  reply_markup=kb, parse_mode="HTML")
+        await send_message(queue_remove_user_id, f'<b>{init_user.name}</b> убрал вас из очереди.')
     except Exception as ex:
         logging.info(f"Tried to notify USER_{queue_remove_user_id} (user) about being removed from queue, but got error: {ex}")
 
     try:
-        await bot.send_message(init_user_id, f'Вы убрали пользователя <b>{removed_user.name}</b> из очереди.', parse_mode="HTML")
+        await send_message(init_user_id, f'Вы убрали пользователя <b>{removed_user.name}</b> из очереди.')
     except Exception as ex:
         logging.info(f"Tried to notify USER_{init_user_id} about successful user remove from queue, but got error: {ex}")
 

@@ -13,19 +13,14 @@ from models.server_rooms import get_room
 from models.server_users import get_user, remove_user_from_db
 from models.user import User
 from roles.check_user_role import IsAdmin, IsModerator
-from routing.router import handle_message
+from routing.router import handle_message, send_message
+from routing.user_routes import UserRoutes
 
 router = Router()
 
 
-@router.message(F.text.lower() == "профиль")
-async def profile_settings_state(message: types.Message, state: FSMContext):
-    await state.set_state(RoomVisiterState.PROFILE_SETTINGS_SCREEN)
-    await profile_settings(message)
-
-
 @router.callback_query(F.data == "show#profile")
-async def profile_settings_state_call(message: types.Message, state: FSMContext):
+async def profile_settings_state(message: types.Message, state: FSMContext):
     await state.set_state(RoomVisiterState.PROFILE_SETTINGS_SCREEN)
     await profile_settings(message)
 
@@ -125,6 +120,8 @@ async def profile_back(message: types.Message, state: FSMContext):
 @router.message(RoomVisiterState.PROFILE_SETTINGS_SCREEN)
 async def profile_settings(message: types.Message):
     kb = await get_settings_kb(message.from_user.id)
+    user: User = await get_user(message.from_user.id)
+    await user.set_route(UserRoutes.Profile)
     user_name = await get_user_name(message.from_user.id)
     await handle_message(message.from_user.id, f"⚙️ Настройки профиля «<b>{user_name}</b>»", reply_markup=kb)
 
@@ -133,11 +130,20 @@ async def profile_settings(message: types.Message):
 async def change_user_name_state(message: types.Message, state: FSMContext):
     '''
     Подтверждение изменения имени
-
     '''
+
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        types.InlineKeyboardButton(
+            text=f'Назад',
+            callback_data=f'show#profile'
+        )
+    )
+    kb = builder.as_markup(resize_keyboard=True)
+
     input_name = message.text
     if not input_name.replace(' ', '').isalpha():
-        await handle_message(message.from_user.id,f"Неверный формат имени\n✏️ 1. Введите новое имя (Имя Фамилия):")
+        await handle_message(message.from_user.id,f"Неверный формат имени\n✏️ 1. Введите новое имя (Имя Фамилия):", reply_markup=kb)
         return
 
     if 'Мод' in input_name or 'мод' in input_name:
@@ -147,7 +153,7 @@ async def change_user_name_state(message: types.Message, state: FSMContext):
         user_name = '⭐ ' + user_name
         await change_user_name(message.from_user.id, user_name)
         log_user_info(message.from_user.id, f'Changed name to: {message.text}')
-        await handle_message(message.from_user.id,f"✅ Имя успешно изменено на {input_name}")
+        await send_message(message.from_user.id,f"✅ Имя успешно изменено на {input_name}")
         await profile_settings_state(message, state)
         return
 
@@ -158,17 +164,17 @@ async def change_user_name_state(message: types.Message, state: FSMContext):
         user_name = '👑 ' + user_name
         await change_user_name(message.from_user.id, user_name)
         log_user_info(message.from_user.id, f'Changed name to: {message.text}')
-        await handle_message(message.from_user.id,f"✅ Имя успешно изменено на {input_name}")
+        await send_message(message.from_user.id,f"✅ Имя успешно изменено на {input_name}")
         await profile_settings_state(message, state)
         return
 
     if 1 < len(input_name.split(' ')) < 3:
         user: User = await get_user(message.from_user.id)
         user.nickname = message.text
-        await handle_message(message.from_user.id,f"✏️ 2. Введите номер компьютера, за которым вы сидите:")
+        await handle_message(message.from_user.id,f"✏️ 2. Введите номер компьютера, за которым вы сидите:", reply_markup=kb)
         await state.set_state(RoomVisiterState.CHANGE_PROFILE_NAME_PC)
     else:
-        await handle_message(message.from_user.id, f"Неверный формат имени\n✏️ 1. Введите новое имя (Имя Фамилия):")
+        await handle_message(message.from_user.id, f"Неверный формат имени\n✏️ 1. Введите новое имя (Имя Фамилия):", reply_markup=kb)
 
 
 @router.message(RoomVisiterState.CHANGE_PROFILE_NAME_PC)
@@ -176,13 +182,28 @@ async def change_user_name_state(message: types.Message, state: FSMContext):
     '''
     Подтверждение изменения имени
     '''
+
+    builder = InlineKeyboardBuilder()
+
+    builder.row(
+        types.InlineKeyboardButton(
+            text=f'Назад',
+            callback_data=f'show#profile'
+        )
+    )
+
+    kb = builder.as_markup(resize_keyboard=True)
+
     if message.text.isdigit():
         user: User = await get_user(message.from_user.id)
         user.pc_num = message.text
         user_name = user.nickname + ' ' + user.pc_num
-        await change_user_name(message.from_user.id, user_name)
-        log_user_info(message.from_user.id, f'Changed name to: {message.text}')
-        await handle_message(user.user_id, f"✅ Имя успешно изменено на {user.name}")
-        await profile_settings_state(message, state)
+        result = await change_user_name(message.from_user.id, user_name)
+        if result:
+            log_user_info(message.from_user.id, f'Changed name to: {message.text}')
+            await send_message(user.user_id, f"✅ Имя успешно изменено на {user.name}")
+            await profile_settings_state(message, state)
+        else:
+            await handle_message(user.user_id, f"Произошла ошибка.", reply_markup=kb)
     else:
-        await handle_message(message.from_user.id,f"Неверный формат номера компьютера\n✏️ 2. Введите номер компьютера, за которым вы сидите:")
+        await handle_message(message.from_user.id,f"Неверный формат номера компьютера\n✏️ 2. Введите номер компьютера, за которым вы сидите:", reply_markup=kb)

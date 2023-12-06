@@ -18,7 +18,7 @@ async def get_remove_user_kb(user_id):
         try:
             queue_user: User = await get_user(room_user_id)
             builder.row(
-                types.InlineKeyboardButton(text=f"{i}. {queue_user.name}", callback_data=f"queue_remove_{room_user_id}_{user_id}")
+                types.InlineKeyboardButton(text=f"{i+1}. {queue_user.name}", callback_data=f"queue_remove_{room_user_id}_{user_id}")
             )
         except Exception as ex:
             logging.error(ex)

@@ -11,6 +11,7 @@ from models.server_users import get_user
 from models.user import User
 from roles.role_cache import users_role_cache
 from routing.router import handle_message
+from routing.user_routes import UserRoutes
 from states.room_state import RoomVisiterState
 from states.welcome_state import WelcomeState
 
@@ -61,7 +62,7 @@ async def start_command(message: types.Message, state: FSMContext):
         room = await db_get_user_room(user.user_id)
         if 'room' in room:
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
-            await welcome_room(message)
+            await welcome_room(message.from_user.id)
             return
 
     await state.set_state(WelcomeState.WELCOME_SCREEN)
@@ -73,6 +74,8 @@ async def start_command(message: types.Message, state: FSMContext):
         "https://i.postimg.cc/MpCGsd4H/1.png"
     )
     '''
+    await user.set_route(UserRoutes.MainMenu)
+
     logging.info(f'MAIN SCREEN | USER_{user.user_id} | {message.from_user.username}')
     form_message, form_kb = await get_welcome_form(message.from_user.first_name, message.from_user.id)
     await handle_message(user.user_id, form_message, reply_markup=form_kb)

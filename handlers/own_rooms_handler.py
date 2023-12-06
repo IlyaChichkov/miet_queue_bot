@@ -50,4 +50,4 @@ async def show_rooms_list(callback: types.CallbackQuery, state: FSMContext):
 
             log_user_info(user.user_id, f'Joined room, name: {room_name} as admin')
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
-            await welcome_room(callback.message, user_id)
+            await welcome_room(user_id)

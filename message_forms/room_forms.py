@@ -38,7 +38,7 @@ def format_user_count(count):
         word_form = 'пользователя'
     else:
         word_form = 'пользователей'
-    return f"Еще {count} {word_form}"
+    return word_form
 
 
 async def get_welcome_queue_message(room: Room):
@@ -57,7 +57,7 @@ async def get_welcome_queue_message(room: Room):
         queue_list += f'{i + 1}. {user_name}\n'
 
     if overflow:
-        queue_list += format_user_count(disp_count)
+        queue_list += f"Еще {disp_count} {format_user_count(disp_count)}"
 
     return queue_list
 
@@ -72,7 +72,7 @@ async def get_welcome_message(user_id, room: Room):
     join_code = room.users_join_code
 
     room_users_count = len(room.get_users_list())
-    room_users_mesg = f'Сейчас в комнате {room_users_count} человек'
+    room_users_mesg = f'Сейчас в комнате {room_users_count} ' + format_user_count(room_users_count)
 
     place_message = 'Вас нет в очереди.'
     if user_id in room.queue:
@@ -80,17 +80,17 @@ async def get_welcome_message(user_id, room: Room):
 
     role_to_welcome_text = {
         UserRoles.Admin:  f"📖 Комната «<b>{room_name}</b>»\n{room_users_mesg}\n"
-                          f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
+                          f"<b>Код для присоединения:</b>\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
                           f"Студентов: <code>{join_code}</code>",
         UserRoles.Moderator:  f"📖 Комната «<b>{room_name}</b>»\n{room_users_mesg}\n"
-                              f"Код для присоединения:\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
+                              f"<b>Код для присоединения:</b>\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
                               f"Студентов: <code>{join_code}</code>",
         UserRoles.User:  f'📖 Комната «<b>{room_name}</b>»\n{room_users_mesg}\n{place_message}'
     }
     mesg_text = role_to_welcome_text.get(role, 'None')
-    queue_list = None
-    if role == UserRoles.User:
-        queue_list = await get_welcome_queue_message(room)
+    queue_list = ''
+    #if role == UserRoles.User:
+    queue_list = await get_welcome_queue_message(room)
     return { 'mesg_text': mesg_text, 'keyboard': kb, 'queue_list': queue_list }
 
 

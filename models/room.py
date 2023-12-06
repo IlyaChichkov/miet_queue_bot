@@ -5,7 +5,7 @@ from firebase_admin import db
 
 from bot_conf.bot_logging import log_database_update
 from events.queue_events import update_room_event, update_queue_event, users_notify_queue_changed_event, \
-    users_notify_queue_skipped
+    users_notify_queue_skipped, user_leave_room_event
 from models.note import StudyNote
 from models.server_users import get_user
 from models.user import User
@@ -105,7 +105,9 @@ class Room:
             except Exception as ex:
                 logging.error(f'Failed to fire event of queue update to users: {ex}')
 
-            return self.queue.pop(0)
+            returned_user = self.queue.pop(0)
+            await update_queue_event.fire(self.room_id, returned_user)
+            return returned_user
         return None
 
     ''' QUEUE SET '''
@@ -185,6 +187,8 @@ class Room:
             self.queue.remove(user_id)
             asyncio.create_task(update_queue_event.fire(self.room_id, user_id))
         self.role_to_list(self.get_user_role(user_id)).remove(user_id)
+
+        asyncio.create_task(user_leave_room_event.fire(self.room_id, user_id))
         user: User = await get_user(user_id)
         await user.leave_room()
 
