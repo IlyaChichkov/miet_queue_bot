@@ -1,5 +1,6 @@
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot_conf.bot_logging import log_user_info
 from firebase_manager.firebase import db_create_room, user_join_room, enter_queue, admin_join_room, try_enter_queue
@@ -109,24 +110,52 @@ async def create_room_state(message: types.Message, state: FSMContext):
 
 
 @router.message(F.text.lower() == "создать комнату", WelcomeState.WELCOME_SCREEN)
+@router.callback_query(F.data == "action#create_room", WelcomeState.WELCOME_SCREEN)
 async def create_room_state(message: types.Message, state: FSMContext):
     has_access = await check_access_level(message.from_user.id, GlobalRoles.Teacher)
     if not has_access:
         return
-    await message.answer("Введите название комнаты:")
+
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        types.InlineKeyboardButton(
+            text=f'Назад',
+            callback_data=f'action#cancel_create_room'
+        )
+    )
+    kb = builder.as_markup(resize_keyboard=True)
+
     await state.set_state(WelcomeState.CREATE_ROOM_SCREEN)
+    await handle_message(message.from_user.id, "Введите название комнаты:", kb)
 
 
-@router.message(F.text.lower() == "присоединиться к комнате", WelcomeState.WELCOME_SCREEN)
-async def join_room_state(message: types.Message, state: FSMContext):
-    await message.answer("Введите код присоединения к комнате:")
+@router.callback_query(F.data == 'action#join_room', WelcomeState.WELCOME_SCREEN)
+async def join_room_state_call(message: types.Message, state: FSMContext):
+
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        types.InlineKeyboardButton(
+            text=f'Назад',
+            callback_data=f'action#cancel_join_room'
+        )
+    )
+    kb = builder.as_markup(resize_keyboard=True)
+
+    await handle_message(message.from_user.id, "Введите код присоединения к комнате:", kb)
     await state.set_state(WelcomeState.JOIN_ROOM_SCREEN)
 
 
 @router.message(F.text.lower() == "назад", WelcomeState.CREATE_ROOM_SCREEN)
+@router.callback_query(F.data == "action#cancel_create_room", WelcomeState.CREATE_ROOM_SCREEN)
 async def create_room_cancel(message: types.Message, state: FSMContext):
     await state.set_state(WelcomeState.WELCOME_SCREEN)
     await start_command(message, state)
+
+
+@router.callback_query(F.data == "action#cancel_join_room", WelcomeState.JOIN_ROOM_SCREEN)
+async def create_room_cancel(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(WelcomeState.WELCOME_SCREEN)
+    await start_command(callback, state)
 
 
 @router.message(F.text, WelcomeState.CREATE_ROOM_SCREEN)
@@ -141,7 +170,7 @@ async def create_room(message: types.Message, state: FSMContext):
         await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
         await welcome_room(message)
     else:
-        await message.answer(f"Не получилось создать комнату. Ошибка: {result['error_text']}")
+        await handle_message(message.from_user.id, f"Не получилось создать комнату. Ошибка: {result['error_text']}")
         await state.set_state(WelcomeState.WELCOME_SCREEN)
         await start_command(message, state)
 

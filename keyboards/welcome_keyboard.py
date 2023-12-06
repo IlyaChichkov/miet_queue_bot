@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
@@ -18,6 +20,13 @@ async def get_owner_rooms_kb(user_id):
                                            callback_data=f"connect_room#{room_item}")
             )
 
+    builder.row(
+        types.InlineKeyboardButton(
+            text=f'Назад',
+            callback_data=f'show#main_menu'
+        )
+    )
+
     return builder.as_markup()
 
 
@@ -25,7 +34,7 @@ async def get_welcome_kb(user_id):
     global_role: GlobalRoles = await get_access_level(user_id)
     builder = InlineKeyboardBuilder()
 
-    if global_role is None:
+    if global_role is None or global_role is GlobalRoles.Empty:
         builder.row(
             types.InlineKeyboardButton(
                 text="Избранное",
@@ -75,6 +84,11 @@ async def get_welcome_kb(user_id):
         )
         builder.row(
             types.InlineKeyboardButton(
+                text="Удалить кэш",
+                callback_data='action#delete_server_cache'
+            ),
+            types.InlineKeyboardButton(
+
                 text="Посмотреть кэш",
                 callback_data='show#server_cache'
             ),
@@ -83,16 +97,7 @@ async def get_welcome_kb(user_id):
                 callback_data='action#update_server_cache'
             )
         )
-        builder.row(
-            types.InlineKeyboardButton(
-                text="Удалить кэш",
-                callback_data='action#delete_server_cache'
-            ),
-            types.InlineKeyboardButton(
-                text="Добавить преподавателя",
-                callback_data='action#add_tutor'
-            )
-        )
+
         return builder.as_markup(resize_keyboard=True, input_field_placeholder="")
 
     if global_role is GlobalRoles.Teacher:
@@ -130,20 +135,24 @@ async def get_welcome_kb(user_id):
 async def get_favorite_rooms_kb(user_id):
     builder = InlineKeyboardBuilder()
     favorites = await get_favorite_rooms_dict(user_id)
+    logging.info(favorites)
     for room_id, data in favorites.items():
-        room = data['room']
-        role = data['role']
-        room_list_to_role = {
-            'users': 'Пользователь',
-            'moderators': 'Модератор',
-            'admins': 'Админ'
-        }
-        builder.row(
-            types.InlineKeyboardButton(
-                text=f'{room.name} ({room_list_to_role[role]})',
-                callback_data=f'join_fav_room#{room.room_id}#{role}'
+        try:
+            room = data['room']
+            role = data['role']
+            room_list_to_role = {
+                'users': 'Пользователь',
+                'moderators': 'Модератор',
+                'admins': 'Админ'
+            }
+            builder.row(
+                types.InlineKeyboardButton(
+                    text=f'{room.name} ({room_list_to_role[role]})',
+                    callback_data=f'join_fav_room#{room.room_id}#{role}'
+                )
             )
-        )
+        except Exception as ex:
+            logging.error(ex)
 
     builder.row(
         types.InlineKeyboardButton(

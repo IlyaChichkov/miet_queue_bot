@@ -28,7 +28,7 @@ async def get_join_queue_form(user_id):
     if 'error' in result:
         return f"{result['error_text']}"
 
-    return f""
+    return result
 
 
 def format_user_count(count):
@@ -126,11 +126,12 @@ async def get_users_list_form(user_id):
 
 
 async def get_announcement_form(user_id):
-    builder = ReplyKeyboardBuilder()
+    builder = InlineKeyboardBuilder()
 
     builder.row(
-        types.KeyboardButton(
-            text="Назад"
+        types.InlineKeyboardButton(
+            text="Назад",
+            callback_data='show#room_menu'
         )
     )
     form_kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)

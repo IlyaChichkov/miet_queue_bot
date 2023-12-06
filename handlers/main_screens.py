@@ -25,7 +25,7 @@ async def any_text(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == 'show#main_menu')
 async def show_main_menu(message: Message, state: FSMContext):
-    await start_command(message.from_user.id, message, state)
+    await start_command(message, state)
 
 
 @router.message(Command("role"))

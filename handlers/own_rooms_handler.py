@@ -9,10 +9,21 @@ from models.room import Room
 from models.server_users import get_user
 from models.user import User
 from roles.special_roles import check_access_level, GlobalRoles
+from routing.router import handle_message
 from states.room_state import RoomVisiterState
 from states.welcome_state import WelcomeState
 
 router = Router()
+
+
+@router.callback_query(F.data == "show#my_rooms", WelcomeState.WELCOME_SCREEN)
+async def show_rooms_list(message: types.Message, state: FSMContext):
+    has_access = await check_access_level(message.from_user.id, GlobalRoles.Teacher)
+    if not has_access:
+        return
+
+    form_message, form_kb = await get_owner_rooms_form(message.from_user.id)
+    await handle_message(message.from_user.id, form_message, reply_markup=form_kb)
 
 
 @router.message(F.text.lower() == "мои комнаты", WelcomeState.WELCOME_SCREEN)

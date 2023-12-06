@@ -15,6 +15,7 @@ from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
 from roles.check_user_role import IsAdmin
+from routing.router import handle_message
 from states.room_state import RoomVisiterState
 from bot_conf.bot import bot
 
@@ -66,6 +67,17 @@ async def change_queue_enabled(message: types.Message, state: FSMContext):
     await queue_list_send(message)
 
 
+@router.callback_query(F.data == "action#toggle_queue")
+async def change_queue_enabled(callback: types.CallbackQuery, state: FSMContext):
+    queue_state = await switch_room_queue_enabled(callback.from_user.id)
+    result_msg = {
+        True: "✅ Вы включили очередь",
+        False: "⛔ Вы выключили очередь"
+    }
+    await callback.answer(result_msg[queue_state], parse_mode="HTML")
+    await queue_list_send(callback)
+
+
 @router.message(F.text.lower() == "назад", RoomVisiterState.ROOM_QUEUE_SCREEN)
 async def exit_queue_list_back(message: types.Message, state: FSMContext):
     await exit_queue_list(message, state)
@@ -115,7 +127,7 @@ async def queue_pop_handler(message: types.Message, state: FSMContext):
     pop_user_id = await queue_pop(user_id)
     if pop_user_id is None:
         logging.info(f'Try to pop empty queue.')
-        await user_message.answer(get_noqueue_members_mesg()['mesg'], parse_mode="HTML")
+        await user_message.answer('В очереди никого нет', parse_mode="HTML")
         return
 
     await state.set_state(RoomVisiterState.ROOM_ASSIGN_SCREEN)
@@ -154,17 +166,8 @@ async def queue_list_send(message: types.Message, user_id = None):
     log_user_info(user_id, f'Drawing queue list screen to user.')
 
     main_form, mf_kb = await get_queue_main_form(user_id)
-    title_message = await message.answer(main_form, reply_markup=mf_kb)
     form_message, form_kb = await get_queue_list_mesg(user_id)
-    queue_message = await message.answer(form_message, reply_markup=form_kb)
-    # , reply_markup=message_form['kb']
-
-    if not(await update_cache_messages(user_id, 'title', title_message) and
-        await update_cache_messages(user_id, 'queue', queue_message)):
-        # Если нет кеша с сообщениями об очереди, то создаем
-        queue_view_update[user_id] = {"user_msg": message,
-                                  "title": title_message,
-                                  "queue": queue_message}
+    await handle_message(user_id, main_form, reply_markup=mf_kb)
 
 
 def get_user_cache_message(user_id) -> types.Message:

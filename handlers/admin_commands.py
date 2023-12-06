@@ -1,6 +1,7 @@
 from aiogram import Router, F, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
+from aiogram.types import Message
 
 from bot_conf.bot import bot
 from models.server_admin import delete_cache, update_cache, add_teacher, get_cache_file
@@ -11,6 +12,7 @@ router = Router()
 
 
 @router.message(F.text.lower() == "удалить кэш")
+@router.callback_query(F.data == "action#delete_server_cache")
 @router.message(Command("delete_cache"))
 async def delete_server_cache(message: types.Message, state: FSMContext):
     has_access = await check_access_level(message.from_user.id, GlobalRoles.Developer)
@@ -21,14 +23,16 @@ async def delete_server_cache(message: types.Message, state: FSMContext):
 
 
 @router.message(F.text.lower() == "посмотреть кэш")
+@router.callback_query(F.data == "show#server_cache")
 @router.message(Command("show_cache"))
 async def show_server_cache(message: types.Message, state: FSMContext):
     has_access = await check_access_level(message.from_user.id, GlobalRoles.Developer)
     if has_access:
-        await get_cache_file(message)
+        await get_cache_file(message, state)
 
 
 @router.message(F.text.lower() == "добавить преподавателя")
+@router.callback_query(F.data == "action#add_tutor")
 @router.message(Command("add_teacher"))
 async def add_teacher_action(message: types.Message, state: FSMContext):
     has_access = await check_access_level(message.from_user.id, GlobalRoles.Developer)
@@ -49,6 +53,7 @@ async def add_teacher_state(message: types.Message, state: FSMContext):
 
 
 @router.message(F.text.lower() == "обновить кэш")
+@router.callback_query(F.data == "action#update_server_cache")
 @router.message(Command("update_cache"))
 async def update_server_cache(message: types.Message, state: FSMContext):
     has_access = await check_access_level(message.from_user.id, GlobalRoles.Developer)

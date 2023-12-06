@@ -1,26 +1,42 @@
 from aiogram import types
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from firebase_manager.firebase import is_autoqueue_enabled
 
 async def get_settings_kb(user_id):
-    builder = ReplyKeyboardBuilder()
+    builder = InlineKeyboardBuilder()
+
+    autoqueue = await is_autoqueue_enabled(user_id)
+    msg = {
+        True: 'включена',
+        False: 'выключена'
+    }
 
     builder.row(
-        types.KeyboardButton(text=f"Автоочередь ({await is_autoqueue_enabled(user_id)})"),
-        types.KeyboardButton(text="Изменить название")
+        types.InlineKeyboardButton(
+            text=f"Автоочередь {msg[autoqueue]}",
+            callback_data='action#room_autoqueue_toggle'
+        ),
+        types.InlineKeyboardButton(
+            text="Изменить название",
+            callback_data='action#change_room_name')
     )
 
     builder.row(
-        types.KeyboardButton(text='Экспорт заметок')
+        types.InlineKeyboardButton(
+            text='Экспорт заметок',
+            callback_data='action#export_notes')
     )
 
     builder.row(
-        types.KeyboardButton(text='🗑️ Удалить комнату')
+        types.InlineKeyboardButton(
+            text='🗑️ Удалить комнату',
+            callback_data='action#delete_room')
     )
 
     builder.row(
-        types.KeyboardButton(
-            text="Назад"
+        types.InlineKeyboardButton(
+            text="Назад",
+            callback_data='show#room_menu'
         )
     )
     return builder.as_markup(resize_keyboard=True)

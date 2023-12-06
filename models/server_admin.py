@@ -2,17 +2,20 @@ import datetime
 import json
 import logging
 
+import aiogram.types
 from aiogram.types import FSInputFile
 from firebase_admin import db
 from pathlib import Path
 
+from handlers.main_screens import start_command
 from models.server_passwords import server_passwords
 from models.server_rooms import server_rooms, load_room_from_json, add_room
 from models.server_users import server_users, load_user_from_json, add_user, get_user
 from models.user import User
+from routing.router import send_document
 
 
-async def get_cache_file(message):
+async def get_cache_file(message: aiogram.types.Message, state):
     '''
     Отправка файла с кешем сервера
     '''
@@ -23,9 +26,9 @@ async def get_cache_file(message):
         file.write(message_text)
 
     send_file = FSInputFile(file_path, f'Кэш_сервера_{datetime.datetime.now().time().strftime("%H_%M_%S")}.txt')
-    await message.answer_document(send_file)
+    await send_document(message.from_user.id, send_file, "Готово!")
     Path(file_path).unlink()
-    await message.answer("Готово!")
+    await start_command(message, state)
 
 
 async def show_cache():

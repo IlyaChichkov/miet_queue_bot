@@ -213,7 +213,7 @@ async def skip_queue_place(user_id):
 async def exit_queue(user_id):
     user: User = await get_user(user_id)
     logging.info(f'USER_{user_id} left queue')
-    await user.exit_queue()
+    return await user.exit_queue()
 
 
 async def try_enter_queue(user_id):
@@ -277,13 +277,16 @@ async def generate_random_queue(room, queue_list):
     await room.set_queue(queue_list)
 
     message_text = ''
+    if len(queue_list) < 1:
+        return f"<b>В комнате нет пользователей!</b>"
+
     for i, add_user in enumerate(queue_list):
         user: User = await get_user(add_user)
         message_text += f'{i + 1}. {user.name}\n'
         await user.set_queue_enter(room, i)
 
     asyncio.create_task(update_queue_event.fire(room.room_id, None))
-    return message_text
+    return f"<b>Случайный список:</b>\n{message_text}"
 
 
 async def switch_room_queue_enabled(user_id):
@@ -297,12 +300,14 @@ async def switch_room_queue_enabled(user_id):
     }
     logging.info(f'Queue in room {room_key} is {queue_state[new_val]}')
     await queue_enable_state_event.fire(room_key, new_val)
+    return new_val
 
 
 async def change_room_auto_queue(room_key):
     room = await get_room_by_key(room_key)
     await room.switch_autoqueue_enabled()
     logging.info(f'Auto queue join in room {room_key} set to {room.is_queue_on_join}')
+    return room.is_queue_on_join
 
 
 async def change_room_name(user_id, new_name):

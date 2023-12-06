@@ -4,19 +4,20 @@ from bot_conf.bot import bot
 from events.queue_events import user_joined_queue_event
 from models.server_users import get_user
 from models.user import User
+from routing.router import send_message
 
 
 async def joined_notify(room, user_id, place, notify_mod):
     logging.info(f"Joined queue notification for USER_{user_id}")
-    if notify_mod:
-        await moderator_notify(room, user_id)
-    await user_notify(room, user_id, place)
+    #if notify_mod:
+        # await moderator_notify(room, user_id)
+    # await user_notify(room, user_id, place)
 
 
 async def user_notify(room, user_id, place):
     try:
         message = f"Вы присоединились к очереди!\n#️⃣ Ваше место в очереди: <b>{place}</b>"
-        await bot.send_message(user_id, message, parse_mode="HTML")
+        await send_message(user_id, message)
     except Exception as ex:
         logging.info(f"Tried to notify USER_{user_id} (user) about queue join, but got error: {ex}")
 

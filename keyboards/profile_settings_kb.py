@@ -6,20 +6,32 @@ from roles.user_roles_enum import UserRoles
 
 
 async def get_settings_kb(user_id):
-    builder = ReplyKeyboardBuilder()
+    builder = InlineKeyboardBuilder()
 
     builder.row(
-        types.KeyboardButton(text="Удалить профиль"),
-        types.KeyboardButton(text="Изменить имя")
+        types.InlineKeyboardButton(
+            text="Удалить профиль",
+            callback_data=f'action#delete_profile'
+        ),
+        types.InlineKeyboardButton(
+            text="Изменить имя",
+            callback_data=f'action#change_name'
+        )
     )
 
     role = await get_user_role_at_room(user_id)
     if role and role is not UserRoles.User:
-        builder.row(types.KeyboardButton(text="Мои заметки"))
+        builder.row(
+            types.InlineKeyboardButton(
+                text="Мои заметки",
+                callback_data=f'show#my_notes'
+            )
+        )
 
     builder.row(
-        types.KeyboardButton(
-            text="Назад"
+        types.InlineKeyboardButton(
+            text="Назад",
+            callback_data=f'show#main_menu'
         )
     )
     return builder.as_markup(resize_keyboard=True)
@@ -32,6 +44,12 @@ async def get_delete_profile_kb(user_id):
         types.InlineKeyboardButton(
             text='Удалить профиль 🗑️',
             callback_data=f'delete_profile#{user_id}'
+        )
+    )
+    builder.row(
+        types.InlineKeyboardButton(
+            text='Назад',
+            callback_data=f'show#profile'
         )
     )
 

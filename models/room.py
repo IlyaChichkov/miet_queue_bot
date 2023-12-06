@@ -72,6 +72,7 @@ class Room:
     async def switch_autoqueue_enabled(self):
         await (self.__switch_autoqueue_enabled_task())
         asyncio.create_task(update_room_event.fire(self))
+        return self.is_queue_on_join
 
     async def __switch_autoqueue_enabled_task(self):
         self.is_queue_on_join = not self.is_queue_on_join
