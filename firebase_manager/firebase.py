@@ -57,9 +57,18 @@ async def toggle_favorite_room(user_id):
 async def get_favorite_rooms_dict(user_id):
     favorites = {}
     user: User = await get_user(user_id)
+
+    unknown_rooms = []
     for favorite_room, role in user.favorites.items():
         room: Room = await get_room(favorite_room)
+        if room is None:
+            unknown_rooms.append(favorite_room)
+            continue
         favorites[favorite_room] = {'room': room, 'role': role}
+
+    for unknown_room in unknown_rooms:
+        await user.remove_favorite_room(unknown_room)
+
     return favorites
 
 
