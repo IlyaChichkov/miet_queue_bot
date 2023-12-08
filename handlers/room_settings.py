@@ -23,8 +23,7 @@ from routing.router import handle_message
 router = Router()
 
 
-@router.message(F.text.lower() == "настройки комнаты", RoomVisiterState.ROOM_WELCOME_SCREEN)
-@router.callback_query(F.data == "show#room_settings", RoomVisiterState.ROOM_WELCOME_SCREEN)
+@router.callback_query(F.data == "show#room_settings")
 async def room_settings_state(message: types.Message, state: FSMContext):
     await state.set_state(RoomVisiterState.ROOM_SETTINGS_SCREEN)
     await room_settings(message)
