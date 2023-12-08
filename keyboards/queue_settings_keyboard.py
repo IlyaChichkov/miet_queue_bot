@@ -22,6 +22,7 @@ async def get_remove_user_kb(user_id):
             )
         except Exception as ex:
             logging.error(ex)
+        # TODO: Добавить кнопки для перемещения по списку пользователей
 
     builder.row(
         types.InlineKeyboardButton(
