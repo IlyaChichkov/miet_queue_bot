@@ -23,8 +23,11 @@ async def get_settings_kb(user_id):
 
     builder.row(
         types.InlineKeyboardButton(
-            text='Экспорт заметок',
-            callback_data='action#export_notes')
+            text='Файл заметок',
+            callback_data='action#export_notes'),
+        types.InlineKeyboardButton(
+            text='Черный список',
+            callback_data='show#ban_menu')
     )
 
     builder.row(

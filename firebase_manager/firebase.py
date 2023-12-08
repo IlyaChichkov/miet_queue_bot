@@ -162,6 +162,9 @@ async def user_join_room(user_id, room_code, user_role):
         room = await get_room_by_join_code(room_code, user_role)
 
         if room:
+            if user_id in room.banned:
+                return { 'error': 'Banned', 'error_text': 'Вы были добавлены в черный список комнаты.' }
+
             if user_role == 'user':
                 await room.add_user(user_id, UserRoles.User)
             if user_role == 'moderator':
