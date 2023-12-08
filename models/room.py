@@ -27,6 +27,7 @@ class Room:
         self.users = []
 
         self.queue = []
+        self.banned = []
         # Cache only
         self.study_notes: list[StudyNote] = []
 
@@ -47,6 +48,18 @@ class Room:
 
     def set_room_id(self, room_id):
         self.room_id = room_id
+
+    ''' BAN USER '''
+    async def ban_user(self, initiator_id, user_id):
+        if user_id not in self.banned and initiator_id in self.admins:
+            self.banned.append(user_id)
+            logging.info(f'USER_{user_id} was banned in ROOM_{self.room_id} by USER_{initiator_id}')
+
+    ''' REMOVE BAN '''
+    async def remove_ban(self, initiator_id, user_id):
+        if user_id in self.banned and initiator_id in self.admins:
+            self.banned.remove(user_id)
+            logging.info(f'USER_{user_id} ban was removed in ROOM_{self.room_id} by USER_{initiator_id}')
 
     ''' GET USER GROUP '''
     def get_user_group(self, user_id) -> str:
@@ -297,7 +310,8 @@ class Room:
             "queue_enabled": self.is_queue_enabled,
             "queue_on_join": self.is_queue_on_join,
             "join_code": self.users_join_code,
-            "mod_password": self.moderators_join_code
+            "mod_password": self.moderators_join_code,
+            "banned": self.banned
         }
 
     def to_log(self):
@@ -312,5 +326,6 @@ class Room:
             "queue_on_join": self.is_queue_on_join,
             "join_code": self.users_join_code,
             "mod_password": self.moderators_join_code,
-            "study_notes": self.study_notes
+            "study_notes": self.study_notes,
+            "banned": self.banned
         }
