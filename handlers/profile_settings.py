@@ -77,8 +77,7 @@ async def profile_delete(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.answer(f"Возникла ошибка при удалении профиля.")
 
 
-@router.message(F.text.lower() == "изменить имя", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
-@router.callback_query(F.data == "action#change_name", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
+@router.callback_query(F.data == "action#change_name")
 async def profile_change_name(message: types.Message, state: FSMContext):
     '''
     Переход в состояние изменения пользовательского имени

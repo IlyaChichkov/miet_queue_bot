@@ -25,7 +25,7 @@ router = Router()
 
 
 @router.callback_query(F.data == "show#room_settings")
-async def room_settings_state(message: types.Message, state: FSMContext):
+async def room_settings_state(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(RoomVisiterState.ROOM_SETTINGS_SCREEN)
     user: User = await get_user(callback.from_user.id)
     await user.set_route(UserRoutes.RoomSettings)
@@ -45,12 +45,30 @@ async def room_toggle_autoqueue(message: types.Message, state: FSMContext):
     await room_settings(message)
 
 
-@router.message(F.text.lower() == "🗑️ удалить комнату", RoomVisiterState.ROOM_SETTINGS_SCREEN)
+@router.callback_query(F.data == "action#ask_delete_room", RoomVisiterState.ROOM_SETTINGS_SCREEN)
+async def room_delete_state(callback: types.CallbackQuery):
+    builder = InlineKeyboardBuilder()
+
+    builder.row(
+        types.InlineKeyboardButton(
+            text="Удалить",
+            callback_data='action#delete_room')
+    )
+
+    builder.row(
+        types.InlineKeyboardButton(
+            text="Отмена",
+            callback_data='show#room_settings')
+    )
+    kb = builder.as_markup(resize_keyboard=True)
+    await handle_message(callback.from_user.id, 'Вы уверены, что хотите удалить комнату?', kb)
+
+
 @router.callback_query(F.data == "action#delete_room", RoomVisiterState.ROOM_SETTINGS_SCREEN)
-async def room_delete_state(message: types.Message, state: FSMContext):
-    log_user_info(message.from_user.id, f'Deleted room.')
-    if await delete_room(message.from_user.id):
-        await start_command(message, state)
+async def room_delete_state(callback: types.CallbackQuery, state: FSMContext):
+    log_user_info(callback.from_user.id, f'Deleted room.')
+    if await delete_room(callback.from_user.id):
+        await start_command(callback, state)
 
 
 @router.message(F.text.lower() == "экспорт заметок", RoomVisiterState.ROOM_SETTINGS_SCREEN)
@@ -88,12 +106,6 @@ async def room_settings_state(callback: types.CallbackQuery, state: FSMContext):
 
     Path(file_path).unlink()
     await room_settings(callback)
-
-
-@router.message(F.text.lower() == "изменить название", RoomVisiterState.ROOM_SETTINGS_SCREEN)
-async def room_settings_state(message: types.Message, state: FSMContext):
-    await state.set_state(RoomVisiterState.CHANGE_ROOM_NAME)
-    await message.answer("✏️ Введите новое название комнаты")
 
 
 @router.callback_query(F.data == "action#change_room_name", RoomVisiterState.ROOM_SETTINGS_SCREEN)

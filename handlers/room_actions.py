@@ -23,15 +23,6 @@ async def exit_announcement(message: types.Message, state: FSMContext):
     await welcome_room_state(message)
 
 
-@router.message(F.text.lower() == "избранное", RoomVisiterState.ROOM_WELCOME_SCREEN)
-async def switch_favorite_state(message: types.Message, state: FSMContext):
-    added_to_favorites = await toggle_favorite_room(message.from_user.id)
-    if added_to_favorites:
-        await message.answer(f"Комната добавлена в избранное")
-    else:
-        await message.answer(f"Комната убрана из избранного")
-
-
 @router.callback_query(F.data == "action#favorite", RoomVisiterState.ROOM_WELCOME_SCREEN)
 async def switch_favorite_state_call(callback: types.CallbackQuery, state: FSMContext):
     added_to_favorites = await toggle_favorite_room(callback.from_user.id)
@@ -39,6 +30,8 @@ async def switch_favorite_state_call(callback: types.CallbackQuery, state: FSMCo
         await callback.answer(f"Комната добавлена в избранное")
     else:
         await callback.answer(f"Комната убрана из избранного")
+
+    await welcome_room_state(callback)
 
 
 @router.callback_query(F.data == "action#make_announcement", RoomVisiterState.ROOM_WELCOME_SCREEN)
@@ -103,14 +96,7 @@ async def room_exit_state_call(callback: types.CallbackQuery, state: FSMContext)
     await start_command(callback, state)
 
 
-@router.message(IsUser(), F.text.lower() == "занять место", RoomVisiterState.ROOM_WELCOME_SCREEN)
-async def room_queue_push(message: types.Message, state: FSMContext):
-    message_text = await get_join_queue_form(message.from_user.id)
-    # await message.answer(message_text, parse_mode="HTML")
-    await welcome_room_state(message)
-
-
-@router.callback_query(F.data == "action#enter_queue", RoomVisiterState.ROOM_WELCOME_SCREEN)
+@router.callback_query(F.data == "action#enter_queue")
 async def room_queue_push(callback: types.CallbackQuery, state: FSMContext):
     message_text = await get_join_queue_form(callback.from_user.id)
     print(message_text)
@@ -119,7 +105,7 @@ async def room_queue_push(callback: types.CallbackQuery, state: FSMContext):
     await welcome_room_state(callback)
 
 
-@router.callback_query(F.data == "action#exit_queue", RoomVisiterState.ROOM_WELCOME_SCREEN)
+@router.callback_query(F.data == "action#exit_queue")
 async def room_queue_push(callback: types.CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     if await exit_queue(user_id):
@@ -130,27 +116,9 @@ async def room_queue_push(callback: types.CallbackQuery, state: FSMContext):
         await welcome_room_state(callback)
 
 
-@router.callback_query(F.data == "action#skip_turn", RoomVisiterState.ROOM_WELCOME_SCREEN)
+@router.callback_query(F.data == "action#skip_turn")
 async def room_queue_push(callback: types.CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     skiped_user_name = await skip_queue_place(user_id)
     if skiped_user_name:
         await send_message(user_id, f"Вы пропустили вперед «<b>{skiped_user_name}</b>»")
-
-
-@router.message(IsUser(), F.text.lower() == "выйти из очереди", RoomVisiterState.ROOM_WELCOME_SCREEN)
-async def room_queue_remove(message: types.Message, state: FSMContext):
-    if await exit_queue(message.from_user.id):
-        await message.answer(f"Вы покинули очередь")
-        await welcome_room_state(message)
-    else:
-        await message.answer(f"Вы уже не состоите в очереди") # TODO: Add error text
-        await welcome_room_state(message)
-
-
-@router.message(IsUser(), F.text.lower() == "пропустить вперед", RoomVisiterState.ROOM_WELCOME_SCREEN)
-async def room_queue_push(message: types.Message, state: FSMContext):
-    user_id = message.from_user.id
-    skiped_user_name = await skip_queue_place(user_id)
-    if skiped_user_name:
-        await message.answer(f"Вы пропустили вперед «<b>{skiped_user_name}</b>»", parse_mode="HTML")
