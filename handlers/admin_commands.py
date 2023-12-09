@@ -4,16 +4,25 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from bot_conf.bot import bot
+from keyboards.admin_keyboard import get_admin_kb
 from models.server_admin import delete_cache, update_cache, add_teacher, get_cache_file
 from roles.special_roles import check_access_level, GlobalRoles
+from routing.router import handle_message
 from states.admin_state import AdminState
 
 router = Router()
 
 
-@router.message(F.text.lower() == "удалить кэш")
+@router.callback_query(F.data == "show#admin_menu")
+async def delete_server_cache(callback: types.CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    has_access = await check_access_level(user_id, GlobalRoles.Developer)
+    if has_access:
+        kb = await get_admin_kb(user_id)
+        await handle_message(user_id, "Управление:", kb)
+
+
 @router.callback_query(F.data == "action#delete_server_cache")
-@router.message(Command("delete_cache"))
 async def delete_server_cache(message: types.Message, state: FSMContext):
     has_access = await check_access_level(message.from_user.id, GlobalRoles.Developer)
     if has_access:
@@ -22,7 +31,6 @@ async def delete_server_cache(message: types.Message, state: FSMContext):
         await message.answer("Готово!")
 
 
-@router.message(F.text.lower() == "посмотреть кэш")
 @router.callback_query(F.data == "show#server_cache")
 @router.message(Command("show_cache"))
 async def show_server_cache(message: types.Message, state: FSMContext):
@@ -31,9 +39,7 @@ async def show_server_cache(message: types.Message, state: FSMContext):
         await get_cache_file(message, state)
 
 
-@router.message(F.text.lower() == "добавить преподавателя")
 @router.callback_query(F.data == "action#add_tutor")
-@router.message(Command("add_teacher"))
 async def add_teacher_action(message: types.Message, state: FSMContext):
     has_access = await check_access_level(message.from_user.id, GlobalRoles.Developer)
     if has_access:
@@ -52,9 +58,7 @@ async def add_teacher_state(message: types.Message, state: FSMContext):
         await message.answer(str(e))
 
 
-@router.message(F.text.lower() == "обновить кэш")
 @router.callback_query(F.data == "action#update_server_cache")
-@router.message(Command("update_cache"))
 async def update_server_cache(message: types.Message, state: FSMContext):
     has_access = await check_access_level(message.from_user.id, GlobalRoles.Developer)
     if has_access:
