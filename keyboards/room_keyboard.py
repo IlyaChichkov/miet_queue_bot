@@ -1,11 +1,12 @@
 from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
-from firebase_manager.firebase import is_user_in_queue, get_room_queue_enabled_by_userid
+from firebase_manager.firebase import is_user_in_queue, get_room_queue_enabled_by_userid, is_user_name_default
 from models.server_users import get_user
+from models.user import User
 
 
-async def get_admin_welcome_kb(user_id):
+async def get_admin_welcome_kb(user: User, is_room_favorite):
     builder = InlineKeyboardBuilder()
 
     builder.row(
@@ -32,7 +33,7 @@ async def get_admin_welcome_kb(user_id):
             text="Выйти",
             callback_data='action#exit_room'
         ),
-        types.InlineKeyboardButton(text="Избранное",
+        types.InlineKeyboardButton(text=f"Избранное {'❤️' if is_room_favorite else '🤍'}",
                                    callback_data='action#favorite'),
         types.InlineKeyboardButton(
             text="Профиль",
@@ -42,7 +43,7 @@ async def get_admin_welcome_kb(user_id):
     return builder.as_markup(resize_keyboard=True)
 
 
-async def get_moderator_welcome_kb(user_id):
+async def get_moderator_welcome_kb(user: User, is_room_favorite):
     builder = InlineKeyboardBuilder()
 
     builder.row(
@@ -76,7 +77,9 @@ async def get_moderator_welcome_kb(user_id):
     return builder.as_markup(resize_keyboard=True)
 
 
-async def get_user_welcome_kb(user_id):
+async def get_user_welcome_kb(user: User, is_room_favorite):
+    user_id = user.user_id
+    default_name = await is_user_name_default(user_id)
     builder = InlineKeyboardBuilder()
 
     result = await is_user_in_queue(user_id)
@@ -87,8 +90,13 @@ async def get_user_welcome_kb(user_id):
     queue_enabled = await get_room_queue_enabled_by_userid(user_id)
     if queue_enabled:
         if not user_in_queue:
-            builder.row(types.InlineKeyboardButton(text="Занять место",
-                                                   callback_data='action#enter_queue'))
+            if default_name:
+                builder.row(types.InlineKeyboardButton(text="Поменять имя",
+                                                       callback_data='action#change_name'))
+            else:
+                builder.row(types.InlineKeyboardButton(text="Занять место",
+                                                       callback_data='action#enter_queue'))
+
         else:
             if user_place + 1 < queue_len:
                 builder.row(
