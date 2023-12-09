@@ -84,17 +84,8 @@ async def get_welcome_kb(user_id):
         )
         builder.row(
             types.InlineKeyboardButton(
-                text="Удалить кэш",
-                callback_data='action#delete_server_cache'
-            ),
-            types.InlineKeyboardButton(
-
-                text="Посмотреть кэш",
-                callback_data='show#server_cache'
-            ),
-            types.InlineKeyboardButton(
-                text="Обновить кэш",
-                callback_data='action#update_server_cache'
+                text="Управление",
+                callback_data='show#admin_menu'
             )
         )
 
