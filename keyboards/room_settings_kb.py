@@ -33,7 +33,7 @@ async def get_settings_kb(user_id):
     builder.row(
         types.InlineKeyboardButton(
             text='🗑️ Удалить комнату',
-            callback_data='action#delete_room')
+            callback_data='action#ask_delete_room')
     )
 
     builder.row(
