@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot_conf.bot_logging import log_user_info
-from firebase_manager.firebase import db_create_room, user_join_room, enter_queue, admin_join_room, try_enter_queue
+from firebase_manager.firebase import db_create_room, user_join_room, admin_join_room, try_enter_queue
 import re
 
 from handlers.main_screens import start_command
@@ -49,6 +49,14 @@ async def show_rooms_list(callback: types.CallbackQuery, state: FSMContext):
 
     if role == 'user':
         joined_room = await user_join_room(user_id, room.users_join_code, 'user')
+        if 'error' in joined_room and joined_room['error'] == 'Banned':
+            from models.server_users import get_user
+            from models.user import User
+            user: User = await get_user(user_id)
+            await user.remove_favorite_room(room_id)
+            await callback.answer(f"Вам ограничили доступ к этой комнате ⛔")
+            await show_favorites_list(callback)
+            return
 
         if 'room' in joined_room:
             room: Room = joined_room['room']
@@ -180,6 +188,7 @@ async def join_room(message: types.Message, state: FSMContext):
     '''
     Присоединение к комнате
     '''
+    user_id = message.from_user.id
 
     filter_join_code = re.findall(r"^[0-9]+$", message.text)
 
@@ -187,13 +196,13 @@ async def join_room(message: types.Message, state: FSMContext):
     check_mod_code = len(message.text) == 7
 
     if check_user_code:
-        joined_room = await user_join_room(message.from_user.id, message.text, 'user')
+        joined_room = await user_join_room(user_id, message.text, 'user')
 
         if 'room' in joined_room:
             room: Room = joined_room['room']
             room_name = room.name
             if room.is_queue_on_join and room.is_queue_enabled:
-                await try_enter_queue(message.from_user.id)
+                await try_enter_queue(user_id)
 
             log_user_info(message.from_user.id, f'Joined room, name: {room_name} as user')
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
@@ -203,16 +212,17 @@ async def join_room(message: types.Message, state: FSMContext):
             if joined_room['error'] == 'Connected to other room':
                 await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
                 await welcome_room_state(message)
-            await message.answer(f"Ошибка подключения к комнате. {joined_room['error_text']}")
-            await state.set_state(WelcomeState.WELCOME_SCREEN)
+            else:
+                await join_room_error(user_id, f"Ошибка подключения к комнате. {joined_room['error_text']}", state)
+
     elif check_mod_code:
-        joined_room = await user_join_room(message.from_user.id, message.text, 'moderator')
+        joined_room = await user_join_room(user_id, message.text, 'moderator')
 
         if 'room' in joined_room:
             room: Room = joined_room['room']
             room_name = room.name
 
-            log_user_info(message.from_user.id, f'Joined room, name: {room_name} as moderator')
+            log_user_info(user_id, f'Joined room, name: {room_name} as moderator')
             await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
             await welcome_room_state(message)
         else:
@@ -220,9 +230,18 @@ async def join_room(message: types.Message, state: FSMContext):
             if joined_room['error'] == 'Connected to other room':
                 await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
                 await welcome_room_state(message)
-            await message.answer(f"Ошибка подключения к комнате. {joined_room['error_text']}")
-            await state.set_state(WelcomeState.WELCOME_SCREEN)
+            else:
+                await join_room_error(user_id, f"Ошибка подключения к комнате. {joined_room['error_text']}", state)
     else:
-        keyboard = await get_welcome_kb(message.from_user.id)
-        await message.answer("Неверный код подключения.", reply_markup=keyboard)
-        await state.set_state(WelcomeState.WELCOME_SCREEN)
+        await join_room_error(user_id, "Неверный код подключения.", state)
+
+
+async def join_room_error(user_id, error_text, state):
+    await state.set_state(WelcomeState.WELCOME_SCREEN)
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        types.InlineKeyboardButton(text="Главное меню",
+                                   callback_data='show#main_menu')
+    )
+    kb = builder.as_markup(resize_keyboard=True)
+    await handle_message(user_id, error_text, kb)

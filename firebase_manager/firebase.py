@@ -107,11 +107,21 @@ async def get_user_room_key(user_id):
 
 async def leave_room(user_id):
     user: User = await get_user(user_id)
-    room_key = user.room
-    room = await get_room_by_key(room_key)
-    logging.info(f'USER_{user_id} leave ROOM_{room_key} ({room.name})')
-    await room.remove_user(user_id)
-    return True
+    room = await get_room_by_key(user.room)
+    if room is not None:
+        logging.info(f'USER_{user_id} leave ROOM_{user.room} ({room.name})')
+        await room.remove_user(user_id)
+        return True
+    else:
+        return False
+
+
+async def leave_room_instance(user, room):
+    if int(user.user_id) in room.get_users_list():
+        logging.info(f'USER_{user.user_id} leave ROOM_{room.room_id} ({room.name})')
+        await room.remove_user(user.user_id)
+        return True
+    return False
 
 
 async def set_user_room(user_id, room_key):
@@ -162,7 +172,11 @@ async def user_join_room(user_id, room_code, user_role):
         room = await get_room_by_join_code(room_code, user_role)
 
         if room:
-            if user_id in room.banned:
+            print('Check user is banned in room...')
+            print(room.banned)
+            print(user_id)
+            print(int(user_id) in room.banned)
+            if await room.check_banned(user_id):
                 return { 'error': 'Banned', 'error_text': 'Вы были добавлены в черный список комнаты.' }
 
             if user_role == 'user':
