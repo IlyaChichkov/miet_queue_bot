@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 
 from bot_conf.bot import bot
 from events.queue_events import update_queue_event, users_notify_queue_changed_event, user_joined_queue_event, \
-    users_notify_queue_skipped, favorite_toggle_event, user_leave_room_event
+    users_notify_queue_skipped, favorite_toggle_event, user_leave_room_event, queue_enable_state_event
 from firebase_manager.firebase import db_get_user_room, is_user_name_default, get_user_name
 from message_forms.room_forms import get_welcome_message
 from models.room import Room
@@ -37,9 +37,7 @@ async def welcome_room(user_id):
     user: User = await get_user(user_id)
 
     if 'room' in room:
-        if await is_user_name_default(user_id):
-            await send_message(user_id, f'ℹ️ Ваше имя соответствует стандартному: «<b>{user.name}</b>». Пожалуйста поменяйте его в настройках профиля (Имя Фамилия №ПК)')
-        mesg = await get_welcome_message(user_id, room['room'])
+        mesg = await get_welcome_message(user, room['room'])
         menu_text = mesg['mesg_text']
         if mesg['queue_list'] != '':
             menu_text = mesg['mesg_text'] + '\n' + mesg['queue_list']
@@ -64,5 +62,6 @@ async def update_handler(room_id, user_id):
             await welcome_room(room_user)
 
 
+queue_enable_state_event.add_handler(update_handler)
 user_leave_room_event.add_handler(update_handler)
 update_queue_event.add_handler(update_handler)
