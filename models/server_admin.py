@@ -10,7 +10,7 @@ from pathlib import Path
 from handlers.main_screens import start_command
 from models.server_passwords import server_passwords
 from models.server_rooms import server_rooms, load_room_from_json, add_room
-from models.server_users import server_users, load_user_from_json, add_user, get_user
+from models.server_users import server_users_dict, load_user_from_json, add_user, get_user
 from models.user import User
 from routing.router import send_document
 
@@ -42,7 +42,7 @@ async def show_cache():
         message += f' {num+1}) {json.dumps(loaded_r, indent=2, ensure_ascii=False)}\n'
 
     message += 'Users:\n'
-    for num, user in enumerate(server_users):
+    for num, user in enumerate(server_users_dict.values()):
         r = json.dumps(user.to_dict())
         loaded_r = json.loads(r)
         message += f' {num+1}) {json.dumps(loaded_r, indent=2, ensure_ascii=False)}\n'
@@ -81,7 +81,7 @@ async def __load_users():
             for user in users_list:
                 user_key, user_data = user
                 loaded_user = load_user_from_json(user_key, user_data)
-                await add_user(loaded_user)
+                await add_user(loaded_user.user_id, loaded_user)
     except Exception as ex:
         logging.error(f'Failed to load users data from Firebase: {ex}')
     finally:
@@ -107,7 +107,7 @@ async def update_cache():
 
 async def delete_cache():
     server_rooms.clear()
-    server_users.clear()
+    server_users_dict.clear()
     server_passwords.clear()
 
 

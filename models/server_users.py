@@ -2,31 +2,35 @@ import logging
 from typing import List
 
 from firebase_admin import db
+from firebase_admin.exceptions import FirebaseError
 
 from models.user import User
 from utils import generate_code
 
-server_users: List[User] = []
+server_users_dict: dict[int, User] = {}
 
 
-async def get_user(user_id) -> User:
+async def get_user(user_id, create_new = False) -> User:
+    user_id = int(user_id)
     logging.info(f'Get USER_{user_id}')
-    user = [user for user in server_users if str(user.user_id) == str(user_id)]
-    if len(user) > 0:
-        return user[0]
+
+    if user_id in server_users_dict:
+        return server_users_dict[user_id]
     else:
         logging.info(f'Try pooling user from database USER_{user_id}')
         user = await try_get_user_from_db(user_id)
         if user:
-            await add_user(user)
+            await add_user(user_id, user)
         else:
-            user = await create_user(user_id)
+            if create_new:
+                user = await create_user(user_id)
 
         return user
 
 
 async def try_get_user_from_db(user_id) -> User:
     try:
+        user_id = int(user_id)
         users_ref = db.reference(f'/users/')
         user_db = users_ref.order_by_child('tg_id').equal_to(user_id).get()
         user_key, user_data = list(user_db.items())[0]
@@ -70,29 +74,33 @@ async def create_user(user_id) -> User:
     user_ref = users_ref.push(user.to_dict())
 
     user.db_key = user_ref.key
-    await add_user(user)
+    await add_user(user_id, user)
     return user
 
 
-async def add_user(user: User):
+async def add_user(user_id, user: User):
     logging.info(f'Caching USER_{user.user_id}')
     user.check_has_default_name()
-    server_users.append(user)
+    server_users_dict[int(user_id)] = user
 
 
 async def get_total_users_count():
-    return len(server_users)
+    return len(server_users_dict)
 
 
 async def remove_user_from_db(user_id):
     try:
         user = await get_user(user_id)
+
+        from firebase_manager.firebase import leave_room
+        await leave_room(user_id)
         users_ref = db.reference('/users')
         users_ref.child(user.db_key).delete()
+
         logging.info(f'USER_{user_id} was deleted from database')
-        if user in server_users:
-            server_users.remove(user)
+        if user in server_users_dict:
+            del server_users_dict[user_id]
         return True
     except Exception as ex:
-        logging.error(f'Failed to delete USER_{user_id} from database')
+        logging.error(f'Failed to delete USER_{user_id} from database. Error: {ex}')
         return False
