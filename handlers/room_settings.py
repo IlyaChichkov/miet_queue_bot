@@ -19,6 +19,7 @@ from models.user import User
 from datetime import date
 
 from routing.router import handle_message
+from routing.user_routes import UserRoutes
 
 router = Router()
 
@@ -26,7 +27,9 @@ router = Router()
 @router.callback_query(F.data == "show#room_settings")
 async def room_settings_state(message: types.Message, state: FSMContext):
     await state.set_state(RoomVisiterState.ROOM_SETTINGS_SCREEN)
-    await room_settings(message)
+    user: User = await get_user(callback.from_user.id)
+    await user.set_route(UserRoutes.RoomSettings)
+    await room_settings(callback)
 
 
 @router.message(F.text.startswith("Автоочередь"), RoomVisiterState.ROOM_SETTINGS_SCREEN)
