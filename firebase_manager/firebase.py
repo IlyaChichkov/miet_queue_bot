@@ -105,6 +105,18 @@ async def get_user_room_key(user_id):
         return None
 
 
+async def get_global_role_users_dict():
+    global_roles_ref = db.reference('/special_roles')
+    global_roles = global_roles_ref.get()
+    result = []
+    for key, item in global_roles.items():
+        result.append({
+            'user_id': key,
+            'role': item
+        })
+    return result
+
+
 async def leave_room(user_id):
     user: User = await get_user(user_id)
     room = await get_room_by_key(user.room)

@@ -88,15 +88,19 @@ async def __load_users():
         logging.info('Caching completed!')
 
 
-async def add_teacher(teacher_id):
-    '''
-    Добавление специальной роли "преподаватель" пользователю
-    '''
+async def set_global_role(user_id, role):
     global_roles_ref = db.reference('/special_roles')
     global_roles = global_roles_ref.get()
-    global_roles.update({teacher_id: 2})
+    global_roles.update({user_id: role})
     global_roles_ref.set(global_roles)
-    user: User = await get_user(teacher_id)
+    user: User = await get_user(user_id)
+    await user.check_global_role()
+
+
+async def delete_global_role(user_id):
+    global_roles_ref = db.reference('/special_roles').child(user_id)
+    global_roles_ref.delete()
+    user: User = await get_user(user_id)
     await user.check_global_role()
 
 
