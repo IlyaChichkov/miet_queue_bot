@@ -1,11 +1,7 @@
 import logging
 
 from aiogram import types
-from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
-
-from firebase_manager.firebase import get_user_owned_rooms_list, get_favorite_rooms_dict
-from models.server_rooms import get_room
-from roles.special_roles import GlobalRoles, get_access_level
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
 async def get_admin_kb(user_id):
@@ -25,6 +21,10 @@ async def get_admin_kb(user_id):
             text="Обновить кэш",
             callback_data='action#update_server_cache'
         )
+    )
+    builder.row(
+        types.InlineKeyboardButton(text="Журналы событий", callback_data='action#get_log_files'),
+        types.InlineKeyboardButton(text="Управление ролями", callback_data='show#global_role_settings')
     )
     builder.row(
         types.InlineKeyboardButton(
