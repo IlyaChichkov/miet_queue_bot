@@ -57,9 +57,18 @@ async def toggle_favorite_room(user_id):
 async def get_favorite_rooms_dict(user_id):
     favorites = {}
     user: User = await get_user(user_id)
+
+    unknown_rooms = []
     for favorite_room, role in user.favorites.items():
         room: Room = await get_room(favorite_room)
+        if room is None:
+            unknown_rooms.append(favorite_room)
+            continue
         favorites[favorite_room] = {'room': room, 'role': role}
+
+    for unknown_room in unknown_rooms:
+        await user.remove_favorite_room(unknown_room)
+
     return favorites
 
 
@@ -96,13 +105,35 @@ async def get_user_room_key(user_id):
         return None
 
 
+async def get_global_role_users_dict():
+    global_roles_ref = db.reference('/special_roles')
+    global_roles = global_roles_ref.get()
+    result = []
+    for key, item in global_roles.items():
+        result.append({
+            'user_id': key,
+            'role': item
+        })
+    return result
+
+
 async def leave_room(user_id):
     user: User = await get_user(user_id)
-    room_key = user.room
-    room = await get_room_by_key(room_key)
-    logging.info(f'USER_{user_id} leave ROOM_{room_key} ({room.name})')
-    await room.remove_user(user_id)
-    return True
+    room = await get_room_by_key(user.room)
+    if room is not None:
+        logging.info(f'USER_{user_id} leave ROOM_{user.room} ({room.name})')
+        await room.remove_user(user_id)
+        return True
+    else:
+        return False
+
+
+async def leave_room_instance(user, room):
+    if int(user.user_id) in room.get_users_list():
+        logging.info(f'USER_{user.user_id} leave ROOM_{room.room_id} ({room.name})')
+        await room.remove_user(user.user_id)
+        return True
+    return False
 
 
 async def set_user_room(user_id, room_key):
@@ -153,6 +184,13 @@ async def user_join_room(user_id, room_code, user_role):
         room = await get_room_by_join_code(room_code, user_role)
 
         if room:
+            print('Check user is banned in room...')
+            print(room.banned)
+            print(user_id)
+            print(int(user_id) in room.banned)
+            if await room.check_banned(user_id):
+                return { 'error': 'Banned', 'error_text': 'Вы были добавлены в черный список комнаты.' }
+
             if user_role == 'user':
                 await room.add_user(user_id, UserRoles.User)
             if user_role == 'moderator':
@@ -204,7 +242,7 @@ async def skip_queue_place(user_id):
 async def exit_queue(user_id):
     user: User = await get_user(user_id)
     logging.info(f'USER_{user_id} left queue')
-    await user.exit_queue()
+    return await user.exit_queue()
 
 
 async def try_enter_queue(user_id):
@@ -231,8 +269,8 @@ async def is_autoqueue_enabled(user_id):
 async def is_user_in_queue(user_id):
     room = await get_room_by_key(await get_user_room_key(user_id))
     if room and user_id in room.queue:
-        return True
-    return False
+        return {'result': True, 'place': room.queue.index(user_id), 'len': len(room.queue)}
+    return {'result': False, 'place': None, 'len': None}
 
 
 async def is_room_favorite(user_id):
@@ -268,13 +306,16 @@ async def generate_random_queue(room, queue_list):
     await room.set_queue(queue_list)
 
     message_text = ''
+    if len(queue_list) < 1:
+        return f"<b>В комнате нет пользователей!</b>"
+
     for i, add_user in enumerate(queue_list):
         user: User = await get_user(add_user)
         message_text += f'{i + 1}. {user.name}\n'
         await user.set_queue_enter(room, i)
 
     asyncio.create_task(update_queue_event.fire(room.room_id, None))
-    return message_text
+    return f"<b>Случайный список:</b>\n{message_text}"
 
 
 async def switch_room_queue_enabled(user_id):
@@ -288,12 +329,14 @@ async def switch_room_queue_enabled(user_id):
     }
     logging.info(f'Queue in room {room_key} is {queue_state[new_val]}')
     await queue_enable_state_event.fire(room_key, new_val)
+    return new_val
 
 
 async def change_room_auto_queue(room_key):
     room = await get_room_by_key(room_key)
     await room.switch_autoqueue_enabled()
     logging.info(f'Auto queue join in room {room_key} set to {room.is_queue_on_join}')
+    return room.is_queue_on_join
 
 
 async def change_room_name(user_id, new_name):
@@ -310,10 +353,11 @@ async def change_user_name(user_id, new_name):
         user: User = await get_user(user_id)
         await user.update_name(new_name)
         await username_changed_event.fire()
-        return True
     except Exception as e:
         logging.error(f'Update user name error: {str(e)}')
         return False
+    finally:
+        return True
 
 
 async def is_user_name_default(user_id):

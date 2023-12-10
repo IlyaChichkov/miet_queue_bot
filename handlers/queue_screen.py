@@ -15,68 +15,42 @@ from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
 from roles.check_user_role import IsAdmin
+from routing.router import handle_message, send_message
+from routing.user_routes import UserRoutes
 from states.room_state import RoomVisiterState
 from bot_conf.bot import bot
 
 router = Router()
 
+queue_viewers = []
 queue_view_update = {}
 
-async def update_queue_handler(room_id, user_id, notify=True):
-    await update_list_for_users()
+async def update_queue_handler(room_id, user_id):
+    await update_queue_list()
 
 
-async def update_list_for_users():
-    '''
-    Обновление списка с очередью для всех модераторов/админа
-    '''
-    logging.info(f'Update queue list for all viewing users.')
-    current_dict = dict(queue_view_update)
-    for user_id, mesg in current_dict.items():
-        message: types.Message = mesg
-        try:
-            queue_message = message['queue']
-            form_message, form_kb = await get_queue_list_mesg(user_id)
-            await bot.edit_message_text(form_message, chat_id=queue_message.chat.id,
-                                        message_id=queue_message.message_id, reply_markup=form_kb)
-            #queue_message = message['queue']
-            #main_form, mf_kb = await get_queue_main_form(user_id)
-            #await bot.edit_message_text(main_form ,chat_id=queue_message.chat.id, message_id=queue_message.message_id, reply_markup=mf_kb)
-        except Exception as e:
-            logging.error(str(e))
-            await delete_cache_messages(user_id)
-            await queue_list_send(message['user_msg'], user_id)
+async def update_queue_list():
+    for viewer in queue_viewers:
+        user: User = await get_user(viewer)
+        if user.route == UserRoutes.QueueView:
+            await queue_list_send(viewer)
+        else:
+            queue_viewers.remove(viewer)
 
 
-username_changed_event.add_handler(update_list_for_users)
+username_changed_event.add_handler(update_queue_list)
 update_queue_event.add_handler(update_queue_handler)
 
 
-@router.message(IsAdmin(), F.text.lower() == "⛔ выключить очередь")
-async def change_queue_enabled(message: types.Message, state: FSMContext):
-    await switch_room_queue_enabled(message.from_user.id)
-    await message.answer("⛔ Вы выключили очередь", parse_mode="HTML")
-    await queue_list_send(message)
-
-
-@router.message(IsAdmin(), F.text.lower() == "✅ включить очередь")
-async def change_queue_enabled(message: types.Message, state: FSMContext):
-    await switch_room_queue_enabled(message.from_user.id)
-    await message.answer("✅ Вы включили очередь", parse_mode="HTML")
-    await queue_list_send(message)
-
-
-@router.message(F.text.lower() == "назад", RoomVisiterState.ROOM_QUEUE_SCREEN)
-async def exit_queue_list_back(message: types.Message, state: FSMContext):
-    await exit_queue_list(message, state)
-
-
-@router.message(F.text.lower() == "принять первого", RoomVisiterState.ROOM_QUEUE_SCREEN)
-async def queue_pop_mesg(message: types.Message, state: FSMContext):
-    '''
-    Callback для принятия первого человека в очереди
-    '''
-    await queue_pop_handler(message, state)
+@router.callback_query(F.data == "action#toggle_queue")
+async def change_queue_enabled(callback: types.CallbackQuery, state: FSMContext):
+    queue_state = await switch_room_queue_enabled(callback.from_user.id)
+    result_msg = {
+        True: "✅ Вы включили очередь",
+        False: "⛔ Вы выключили очередь"
+    }
+    await callback.answer(result_msg[queue_state], parse_mode="HTML")
+    await queue_list_send(callback.from_user.id)
 
 
 @router.callback_query(F.data == "queue_back", RoomVisiterState.ROOM_QUEUE_SCREEN)
@@ -84,45 +58,29 @@ async def exit_queue_list_call(message: types.Message, state: FSMContext):
     await exit_queue_list(message, state)
 
 
-@router.callback_query(F.data == "queue_pop", RoomVisiterState.ROOM_QUEUE_SCREEN)
-async def queue_pop_call(message: types.Message, state: FSMContext):
-    '''
-    Callback для принятия первого человека в очереди
-    '''
-    await queue_pop_handler(message, state)
-
-
-async def queue_pop_handler(message: types.Message, state: FSMContext):
+async def queue_pop_handler(callback: types.CallbackQuery, state: FSMContext):
     '''
     Обработка принятия первого человека в очереди
     '''
-    user_id = message.from_user.id
+    user_id = callback.from_user.id
 
     # user_name = await get_user_name(pop_user_id)
     # await bot.send_message(user_id, f'Взял пользователя: <b>{user_name}</b>',
     #                       parse_mode="HTML")
 
-    user_message = get_user_cache_message(user_id)
-    if not user_message:
-        user_message = message
-
-    log_user_info(user_message.from_user.id, f'User try to queue.pop')
-
-    current_state = await state.get_state()
-    print(current_state)
-    print(RoomVisiterState.ROOM_WELCOME_SCREEN)
-    print(current_state is RoomVisiterState.ROOM_WELCOME_SCREEN)
     pop_user_id = await queue_pop(user_id)
     if pop_user_id is None:
         logging.info(f'Try to pop empty queue.')
-        await user_message.answer(get_noqueue_members_mesg()['mesg'], parse_mode="HTML")
+        await callback.answer('В очереди никого нет')
         return
 
+    logging.info(f'USER_{user_id} taking first user from queue.')
     await state.set_state(RoomVisiterState.ROOM_ASSIGN_SCREEN)
     await delete_cache_messages(user_id)
     user: User = await get_user(user_id)
     user.assigned_user_id = pop_user_id
-    await assigned_screen(user_message, pop_user_id)
+
+    await assigned_screen(callback, pop_user_id)
     await user_assigned_event.fire(user_id, pop_user_id)
 
 
@@ -140,31 +98,24 @@ async def exit_queue_list(message: types.Message, state: FSMContext):
 
 @router.message(RoomVisiterState.ROOM_QUEUE_SCREEN)
 async def queue_list_state(message: types.Message):
-    await queue_list_send(message)
+    await queue_list_send(message.from_user.id)
 
 
 @router.message(RoomVisiterState.ROOM_QUEUE_SCREEN)
-async def queue_list_send(message: types.Message, user_id = None):
+async def queue_list_send(user_id):
     '''
     Меню с очередью, отрисовка + кеширование
     '''
-    if not user_id:
-        user_id = message.from_user.id
-
     log_user_info(user_id, f'Drawing queue list screen to user.')
 
     main_form, mf_kb = await get_queue_main_form(user_id)
-    title_message = await message.answer(main_form, reply_markup=mf_kb)
-    form_message, form_kb = await get_queue_list_mesg(user_id)
-    queue_message = await message.answer(form_message, reply_markup=form_kb)
-    # , reply_markup=message_form['kb']
+    await handle_message(user_id, main_form, reply_markup=mf_kb)
 
-    if not(await update_cache_messages(user_id, 'title', title_message) and
-        await update_cache_messages(user_id, 'queue', queue_message)):
-        # Если нет кеша с сообщениями об очереди, то создаем
-        queue_view_update[user_id] = {"user_msg": message,
-                                  "title": title_message,
-                                  "queue": queue_message}
+    user: User = await get_user(user_id)
+    await user.set_route(UserRoutes.QueueView)
+
+    if user_id not in queue_viewers:
+        queue_viewers.append(user_id)
 
 
 def get_user_cache_message(user_id) -> types.Message:
@@ -188,6 +139,10 @@ async def delete_cache_messages(user_id):
     '''
     Удаление кеша
     '''
+    if user_id in queue_viewers:
+        queue_viewers.remove(user_id)
+        return True
+
     if user_id in queue_view_update:
         cache_messages = queue_view_update.pop(user_id, None)
         title_message: types.Message = cache_messages['title']
@@ -198,14 +153,14 @@ async def delete_cache_messages(user_id):
     return False
 
 
-@router.message(F.text.lower() == "✏️ добавить примечание", RoomVisiterState.ROOM_ASSIGN_SCREEN)
-async def assigned_add_note(message: types.Message, state: FSMContext):
+@router.callback_query(F.data == "action#add_note", RoomVisiterState.ROOM_ASSIGN_SCREEN)
+async def assigned_add_note(callback: types.CallbackQuery, state: FSMContext):
     '''
     Начало добавления примечания
     '''
     await state.set_state(RoomVisiterState.ASSIGN_NOTE_SCREEN)
     form_message, form_kb = await get_assigned_add_note()
-    await message.answer(form_message, reply_markup=form_kb, parse_mode="HTML")
+    await handle_message(callback.from_user.id, form_message, reply_markup=form_kb)
 
 
 @router.message(F.text.lower() == "назад", RoomVisiterState.ASSIGN_NOTE_SCREEN)
@@ -230,7 +185,7 @@ async def assigned_note_added(message: types.Message, state: FSMContext):
     pupil_name = await get_user_name(user.assigned_user_id)
     room.study_notes.append(StudyNote(room.room_id, room.name, user.user_id, teacher_name, pupil_name, message.text))
     logging.info(f'Note was added by {user.user_id} to {user.assigned_user_id}\nNote: {message.text}')
-    await message.answer(f"Заметка добавлена!", parse_mode="HTML")
+    await send_message(message.from_user.id, f"Заметка добавлена!")
     # Выход на экран очереди
     await exit_assigned_queue(message, state)
 
@@ -253,6 +208,13 @@ async def exit_assigned(message: types.Message, state: FSMContext):
     await queue_list_state(message)
 
 
+@router.callback_query(F.data == "show#assigned_screen")
+async def assigned_screen_call(callback: types.callback_query, state: FSMContext):
+    user = await get_user(callback.from_user.id)
+    await state.set_state(RoomVisiterState.ROOM_ASSIGN_SCREEN)
+    await assigned_screen(callback, user.assigned_user_id)
+
+
 async def assigned_screen(message: types.Message, pop_user_id):
     '''
     Меню для модераторов с назначенным студентом
@@ -260,4 +222,4 @@ async def assigned_screen(message: types.Message, pop_user_id):
     log_user_info(message.from_user.id, f'Drawing assigned screen to user.')
     form_message, form_kb = await get_assigned_mesg(pop_user_id)
 
-    await message.answer(form_message, reply_markup=form_kb, parse_mode="HTML")
+    await handle_message(message.from_user.id, form_message, reply_markup=form_kb)

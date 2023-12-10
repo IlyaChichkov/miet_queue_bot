@@ -3,6 +3,7 @@ from aiogram import Router, types
 from bot_conf.bot import bot
 from events.queue_events import user_assigned_event
 from firebase_manager.firebase import get_user_name, get_user_room_key, get_room_by_key
+from routing.router import send_message
 
 router = Router()
 
@@ -13,17 +14,8 @@ async def assign_user(moderator_id, user_id):
     Остальным пользователя о том, какое теперь место в очереди они занимают
     '''
     try:
-
-        from aiogram.utils.keyboard import ReplyKeyboardBuilder
-        builder = ReplyKeyboardBuilder()
-
-        builder.row(
-            types.KeyboardButton(text="Вернуться в меню"),
-        )
-        kb = builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
-
         user_name = await get_user_name(moderator_id)
-        await bot.send_message(user_id, f'Вас принял для сдачи: <b>{user_name}</b>', reply_markup=kb, parse_mode="HTML")
+        await send_message(user_id, f'Вас принял для сдачи: <b>{user_name}</b>')
     except Exception as e:
         logging.error(str(e))
 

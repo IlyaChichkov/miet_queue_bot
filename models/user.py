@@ -2,9 +2,11 @@ import asyncio
 import logging
 import re
 
+import aiogram.types
 from firebase_admin import db
 from events.queue_events import user_leave_event, update_queue_event, user_joined_queue_event, \
     users_notify_queue_changed_event, favorite_toggle_event
+from routing.user_routes import UserRoutes
 
 
 class User:
@@ -22,11 +24,18 @@ class User:
         self.has_default_name = True
 
         # Cache only
+        self.route: UserRoutes = UserRoutes.Empty
+        self.create_new_message = True
+        self.last_message_type = ''
+        self.last_message: aiogram.types.Message = None
         self.assigned_user_id = ''
         self.nickname = ''
         self.pc_num = ''
 
         self.name = name
+
+    async def set_route(self, new_route: UserRoutes):
+        self.route: UserRoutes = new_route
 
     async def check_global_role(self):
         global_roles_ref = db.reference('/special_roles')
@@ -35,6 +44,11 @@ class User:
             self.global_role = global_roles[str(self.user_id)]
         else:
             self.global_role = None
+
+    async def set_last_message(self, last_message, message_type):
+        self.last_message = last_message
+        self.last_message_type = message_type
+        self.create_new_message = False
 
     async def get_global_role(self):
         if self.global_role == '':
@@ -48,7 +62,7 @@ class User:
     ''' UPDATE ROLE '''
     async def update_role(self, role):
         self.__update_role_task(role)
-        asyncio.create_task(self.__update_database())
+        await asyncio.create_task(self.__update_database())
 
     def __update_role_task(self, role):
         self.current_role = role
@@ -73,7 +87,7 @@ class User:
 
     async def update_name(self, new_name):
         self.__update_name_task(new_name)
-        asyncio.create_task(self.__update_database())
+        await asyncio.create_task(self.__update_database())
 
     def __update_name_task(self, new_name):
         self.name = new_name
@@ -82,16 +96,16 @@ class User:
 
     ''' ADD OWNED ROOM '''
     async def add_owned_room(self, room_id):
-        asyncio.create_task(self.__add_owned_room_task(room_id))
-        asyncio.create_task(self.__update_database())
+        await asyncio.create_task(self.__add_owned_room_task(room_id))
+        await asyncio.create_task(self.__update_database())
 
     async def __add_owned_room_task(self, room_id):
         self.owned_rooms.append(room_id)
 
     ''' REMOVE OWNED ROOM '''
     async def remove_owned_room(self, room_id):
-        asyncio.create_task(self.__remove_owned_room_task(room_id))
-        asyncio.create_task(self.__update_database())
+        await asyncio.create_task(self.__remove_owned_room_task(room_id))
+        await asyncio.create_task(self.__update_database())
 
     async def __remove_owned_room_task(self, room_id):
         self.owned_rooms.remove(room_id)
@@ -102,7 +116,7 @@ class User:
     ''' SET ROOM '''
     async def set_room(self, room_id):
         self.__set_room_task(room_id)
-        asyncio.create_task(self.__update_database())
+        await asyncio.create_task(self.__update_database())
 
     def __set_room_task(self, room_id):
         logging.info(f"Set USER_{self.user_id} room_id to ROOM_{room_id}")
@@ -110,20 +124,16 @@ class User:
 
     ''' EXIT QUEUE '''
     async def exit_queue(self):
-        await (self.__exit_queue_task())
+        result = await (self.__exit_queue_task())
         await (self.__update_database())
+        return result
 
     async def __exit_queue_task(self):
         from models.server_rooms import get_room
         room = await get_room(self.room)
         if room and self.user_id in room.queue:
-            #user_index = room.queue.index(self.user_id)
-            #users_notify = room.queue[user_index + 1:]
-            #if users_notify:
-            #    await users_notify_queue_changed_event.fire(users_notify)
-
             await room.queue_remove(self.user_id)
-            asyncio.create_task(update_queue_event.fire(room.room_id, self.user_id))
+            await asyncio.create_task(update_queue_event.fire(room.room_id, self.user_id))
         return True
 
     ''' SET QUEUE ENTER '''
@@ -134,7 +144,7 @@ class User:
     ''' ENTER QUEUE '''
     async def enter_queue(self, notify_mod: bool = True):
         queue_place = await (self.__enter_queue_task(notify_mod))
-        asyncio.create_task(self.__update_database())
+        await asyncio.create_task(self.__update_database())
         # await (self.__update_database())
         return queue_place
 
@@ -146,8 +156,8 @@ class User:
                 return -1
             place = len(room.queue) + 1
             await room.queue_add(self.user_id)
-            asyncio.create_task(user_joined_queue_event.fire(room, self.user_id, place, notify_mod))
-            asyncio.create_task(update_queue_event.fire(room.room_id, self.user_id))
+            await asyncio.create_task(user_joined_queue_event.fire(room, self.user_id, place, notify_mod))
+            await asyncio.create_task(update_queue_event.fire(room.room_id, self.user_id))
             return place
         return None
 
@@ -184,13 +194,13 @@ class User:
     async def add_favorite_room(self, room_id):
         if not room_id in self.favorites:
             self.favorites[room_id] = self.current_role
-            asyncio.create_task(self.__update_database())
+            await asyncio.create_task(self.__update_database())
 
     ''' REMOVE FAVORITE ROOM '''
     async def remove_favorite_room(self, room_id):
         if room_id in self.favorites:
             del self.favorites[room_id]
-            asyncio.create_task(self.__update_database())
+            await asyncio.create_task(self.__update_database())
 
     ''' ! UPDATE DATABASE ! '''
     async def __update_database(self):

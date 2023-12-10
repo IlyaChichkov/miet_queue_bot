@@ -2,17 +2,20 @@ import datetime
 import json
 import logging
 
+import aiogram.types
 from aiogram.types import FSInputFile
 from firebase_admin import db
 from pathlib import Path
 
+from handlers.main_screens import start_command
 from models.server_passwords import server_passwords
 from models.server_rooms import server_rooms, load_room_from_json, add_room
-from models.server_users import server_users, load_user_from_json, add_user, get_user
+from models.server_users import server_users_dict, load_user_from_json, add_user, get_user
 from models.user import User
+from routing.router import send_document
 
 
-async def get_cache_file(message):
+async def get_cache_file(message: aiogram.types.Message, state):
     '''
     Отправка файла с кешем сервера
     '''
@@ -23,9 +26,9 @@ async def get_cache_file(message):
         file.write(message_text)
 
     send_file = FSInputFile(file_path, f'Кэш_сервера_{datetime.datetime.now().time().strftime("%H_%M_%S")}.txt')
-    await message.answer_document(send_file)
+    await send_document(message.from_user.id, send_file, "Готово!")
     Path(file_path).unlink()
-    await message.answer("Готово!")
+    await start_command(message, state)
 
 
 async def show_cache():
@@ -39,7 +42,7 @@ async def show_cache():
         message += f' {num+1}) {json.dumps(loaded_r, indent=2, ensure_ascii=False)}\n'
 
     message += 'Users:\n'
-    for num, user in enumerate(server_users):
+    for num, user in enumerate(server_users_dict.values()):
         r = json.dumps(user.to_dict())
         loaded_r = json.loads(r)
         message += f' {num+1}) {json.dumps(loaded_r, indent=2, ensure_ascii=False)}\n'
@@ -78,22 +81,26 @@ async def __load_users():
             for user in users_list:
                 user_key, user_data = user
                 loaded_user = load_user_from_json(user_key, user_data)
-                await add_user(loaded_user)
+                await add_user(loaded_user.user_id, loaded_user)
     except Exception as ex:
         logging.error(f'Failed to load users data from Firebase: {ex}')
     finally:
         logging.info('Caching completed!')
 
 
-async def add_teacher(teacher_id):
-    '''
-    Добавление специальной роли "преподаватель" пользователю
-    '''
+async def set_global_role(user_id, role):
     global_roles_ref = db.reference('/special_roles')
     global_roles = global_roles_ref.get()
-    global_roles.update({teacher_id: 2})
+    global_roles.update({user_id: role})
     global_roles_ref.set(global_roles)
-    user: User = await get_user(teacher_id)
+    user: User = await get_user(user_id)
+    await user.check_global_role()
+
+
+async def delete_global_role(user_id):
+    global_roles_ref = db.reference('/special_roles').child(user_id)
+    global_roles_ref.delete()
+    user: User = await get_user(user_id)
     await user.check_global_role()
 
 
@@ -104,7 +111,7 @@ async def update_cache():
 
 async def delete_cache():
     server_rooms.clear()
-    server_users.clear()
+    server_users_dict.clear()
     server_passwords.clear()
 
 

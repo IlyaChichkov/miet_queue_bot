@@ -3,6 +3,8 @@ from aiogram.fsm.state import StatesGroup, State
 class RoomVisiterState(StatesGroup):
     # Main screen
     ROOM_WELCOME_SCREEN = State()
+    ADMIN_SETTINGS_SCREEN = State()
+    ADMIN_ROLES_SCREEN = State()
     # Room settings
     ROOM_SETTINGS_SCREEN = State()
     CHANGE_ROOM_NAME = State()
@@ -19,5 +21,6 @@ class RoomVisiterState(StatesGroup):
     PROFILE_SETTINGS_SCREEN = State()
     CHANGE_PROFILE_NAME = State()
     CHANGE_PROFILE_NAME_PC = State()
+
 
 

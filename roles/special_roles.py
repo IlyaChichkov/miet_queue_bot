@@ -5,6 +5,7 @@ import enum
 
 
 class GlobalRoles(enum.Enum):
+    Empty = 0
     Developer = 1
     Teacher = 2
 

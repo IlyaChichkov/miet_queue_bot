@@ -5,7 +5,7 @@ from firebase_admin import db
 
 from bot_conf.bot_logging import log_database_update
 from events.queue_events import update_room_event, update_queue_event, users_notify_queue_changed_event, \
-    users_notify_queue_skipped
+    users_notify_queue_skipped, user_leave_room_event
 from models.note import StudyNote
 from models.server_users import get_user
 from models.user import User
@@ -27,6 +27,7 @@ class Room:
         self.users = []
 
         self.queue = []
+        self.banned = []
         # Cache only
         self.study_notes: list[StudyNote] = []
 
@@ -47,6 +48,39 @@ class Room:
 
     def set_room_id(self, room_id):
         self.room_id = room_id
+
+    ''' BAN USER '''
+    async def ban_user(self, initiator_id, user_id):
+        user_id = str(user_id)
+        print('initiator_id:', initiator_id)
+        print('self.admins:', self.admins)
+        print('Is admin:', int(initiator_id) in self.admins)
+        print('not banned:', user_id not in self.banned)
+        if user_id not in self.banned and int(initiator_id) in self.admins:
+            self.banned.append(user_id)
+            logging.info(f'USER_{user_id} was banned in ROOM_{self.room_id} by USER_{initiator_id}')
+            await update_room_event.fire(self)
+            return True
+        return False
+
+    ''' REMOVE BAN '''
+    async def remove_ban(self, initiator_id, user_id):
+        user_id = str(user_id)
+        if user_id in self.banned and int(initiator_id) in self.admins:
+            self.banned.remove(user_id)
+            logging.info(f'USER_{user_id} ban was removed in ROOM_{self.room_id} by USER_{initiator_id}')
+            await update_room_event.fire(self)
+            return True
+        return False
+
+
+    ''' CHECK BAN '''
+    async def check_banned(self, user_id):
+        user_id = str(user_id)
+        if user_id in self.banned:
+            return True
+        return False
+
 
     ''' GET USER GROUP '''
     def get_user_group(self, user_id) -> str:
@@ -71,7 +105,8 @@ class Room:
     ''' AUTO QUEUE ON JOIN '''
     async def switch_autoqueue_enabled(self):
         await (self.__switch_autoqueue_enabled_task())
-        asyncio.create_task(update_room_event.fire(self))
+        await asyncio.create_task(update_room_event.fire(self))
+        return self.is_queue_on_join
 
     async def __switch_autoqueue_enabled_task(self):
         self.is_queue_on_join = not self.is_queue_on_join
@@ -79,7 +114,7 @@ class Room:
     ''' QUEUE ENABLE '''
     async def switch_queue_enabled(self):
         await (self.__switch_queue_enabled_task())
-        asyncio.create_task(update_room_event.fire(self))
+        await asyncio.create_task(update_room_event.fire(self))
 
     async def __switch_queue_enabled_task(self):
         self.is_queue_enabled = not self.is_queue_enabled
@@ -92,7 +127,7 @@ class Room:
         if role is UserRoles.User:
             return None
         user_pop_id = await self.__queue_pop_task()
-        asyncio.create_task(update_room_event.fire(self))
+        await asyncio.create_task(update_room_event.fire(self))
         return user_pop_id
 
     async def __queue_pop_task(self):
@@ -104,7 +139,9 @@ class Room:
             except Exception as ex:
                 logging.error(f'Failed to fire event of queue update to users: {ex}')
 
-            return self.queue.pop(0)
+            returned_user = self.queue.pop(0)
+            await update_queue_event.fire(self.room_id, returned_user)
+            return returned_user
         return None
 
     ''' QUEUE SET '''
@@ -131,8 +168,8 @@ class Room:
     ''' QUEUE REMOVE '''
     async def queue_remove(self, user_id):
         await self.queue_remove_task(int(user_id))
-        asyncio.create_task(update_room_event.fire(self))
-        asyncio.create_task(update_queue_event.fire(self.room_id, user_id))
+        await asyncio.create_task(update_room_event.fire(self))
+        await asyncio.create_task(update_queue_event.fire(self.room_id, user_id))
 
     async def queue_remove_task(self, user_id):
         if user_id not in self.queue:
@@ -154,8 +191,8 @@ class Room:
     async def queue_clear(self):
         # await (self.queue_clear_task())
         self.queue.clear()
-        asyncio.create_task(update_queue_event.fire(self.room_id, None))
-        asyncio.create_task(update_room_event.fire(self))
+        await asyncio.create_task(update_queue_event.fire(self.room_id, None))
+        await asyncio.create_task(update_room_event.fire(self))
 
     async def queue_clear_task(self):
         self.queue.clear()
@@ -175,17 +212,20 @@ class Room:
 
     ''' REMOVE USER '''
     async def remove_user(self, user_id):
-        await (self.__remove_user_task(user_id))
-        await (self.__update_database())
+        await self.__remove_user_task(user_id)
+        await self.__update_database()
 
     async def __remove_user_task(self, user_id):
         # if user_id not in self.admins:
+        user_id = int(user_id)
         if user_id in self.queue:
             self.queue.remove(user_id)
-            asyncio.create_task(update_queue_event.fire(self.room_id, user_id))
+            await asyncio.create_task(update_queue_event.fire(self.room_id, user_id))
         self.role_to_list(self.get_user_role(user_id)).remove(user_id)
+
+        await asyncio.create_task(user_leave_room_event.fire(self.room_id, user_id))
         user: User = await get_user(user_id)
-        await user.leave_room()
+        await asyncio.create_task(user.leave_room())
 
     ''' UPDATE NAME '''
     async def update_name(self, new_name):
@@ -203,8 +243,8 @@ class Room:
             if pass_user_id:
                 self.queue[user_index] = pass_user_id
                 self.queue[user_index + 1] = user_id
-                asyncio.create_task(update_room_event.fire(self))
-                asyncio.create_task(update_queue_event.fire(self.room_id, None))
+                await asyncio.create_task(update_room_event.fire(self))
+                await asyncio.create_task(update_queue_event.fire(self.room_id, None))
                 await users_notify_queue_skipped.fire(pass_user_id, user.name, user_index + 1)
                 return pass_user_id
         return None
@@ -292,7 +332,8 @@ class Room:
             "queue_enabled": self.is_queue_enabled,
             "queue_on_join": self.is_queue_on_join,
             "join_code": self.users_join_code,
-            "mod_password": self.moderators_join_code
+            "mod_password": self.moderators_join_code,
+            "banned": self.banned
         }
 
     def to_log(self):
@@ -307,5 +348,6 @@ class Room:
             "queue_on_join": self.is_queue_on_join,
             "join_code": self.users_join_code,
             "mod_password": self.moderators_join_code,
-            "study_notes": self.study_notes
+            "study_notes": self.study_notes,
+            "banned": self.banned
         }
