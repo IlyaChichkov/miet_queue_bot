@@ -19,13 +19,6 @@ from states.welcome_state import WelcomeState
 router = Router()
 
 
-@router.message(F.text.lower() == "избранное", WelcomeState.WELCOME_SCREEN)
-async def show_favorites_list(message: types.Message, state: FSMContext):
-    user_id = message.from_user.id
-    message_form, kb = await get_favorites_form(user_id)
-    await message.answer(message_form, reply_markup=kb)
-
-
 @router.callback_query(F.data == "show#favorite", WelcomeState.WELCOME_SCREEN)
 async def show_favorites_list(callback: types.CallbackQuery):
     user_id = callback.from_user.id
