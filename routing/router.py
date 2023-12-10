@@ -1,6 +1,7 @@
 import logging
 
 from aiogram import types
+from aiogram.utils.media_group import MediaGroupBuilder
 
 from bot_conf.bot import bot
 from models.server_users import get_user
@@ -57,6 +58,15 @@ async def send_document(user_id, document, message_text):
     user.create_new_message = True
     try:
         await bot.send_document(user_id, document=document, caption=message_text, parse_mode="HTML")
+    except Exception as ex:
+        logging.error(ex)
+
+
+async def send_group(user_id, media_group: MediaGroupBuilder):
+    user: User = await get_user(user_id)
+    user.create_new_message = True
+    try:
+        await bot.send_media_group(chat_id=user_id, media=media_group.build())
     except Exception as ex:
         logging.error(ex)
 
