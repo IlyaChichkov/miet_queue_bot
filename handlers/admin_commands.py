@@ -28,6 +28,7 @@ async def show_user_id(message: types.Message):
     await send_message(user_id, f'Ваш ID: <span class="tg-spoiler">{user_id}</span>')
 
 
+@router.message(Command('admin'))
 @router.callback_query(F.data == "show#admin_menu")
 async def delete_server_cache(callback: types.CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
