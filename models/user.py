@@ -32,6 +32,8 @@ class User:
         self.nickname = ''
         self.pc_num = ''
 
+        self.feedback_lastsend = None
+
         self.name = name
 
     async def set_route(self, new_route: UserRoutes):

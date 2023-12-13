@@ -71,6 +71,11 @@ async def send_group(user_id, media_group: MediaGroupBuilder):
         logging.error(ex)
 
 
+async def set_user_new_message(user_id):
+    user: User = await get_user(user_id)
+    user.create_new_message = True
+
+
 async def send_message(user_id, message_text):
     user: User = await get_user(user_id)
     user.create_new_message = True
