@@ -14,6 +14,7 @@ import bot_conf.bot_logging
 from bot_conf.bot import bot
 from keyboards.admin_keyboard import get_admin_kb
 from models.server_admin import delete_cache, update_cache, get_cache_file
+from models.server_users import get_user
 from roles.special_roles import check_access_level, GlobalRoles
 from routing.router import handle_message, send_document, send_message, send_group
 from states.admin_state import AdminState
@@ -26,6 +27,13 @@ router = Router()
 async def show_user_id(message: types.Message):
     user_id = message.from_user.id
     await send_message(user_id, f'Ваш ID: <span class="tg-spoiler">{user_id}</span>')
+
+
+@router.message(Command('update_my_role'))
+async def show_user_id(message: types.Message):
+    user_id = message.from_user.id
+    user = await get_user(user_id)
+    await user.check_global_role()
 
 
 @router.message(Command('admin'))
