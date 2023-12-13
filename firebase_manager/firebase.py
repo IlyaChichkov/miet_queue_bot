@@ -398,3 +398,8 @@ async def queue_pop(user_id):
     room = await get_room_by_key(user.room)
     user_pop_id = await room.queue_pop(user_id)
     return user_pop_id
+
+async def get_db_data(key):
+    data_ref = db.reference('/data').child(key)
+    data = data_ref.get()
+    return data
