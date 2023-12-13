@@ -116,6 +116,10 @@ async def get_welcome_kb(user_id):
 
         builder.row(
             types.InlineKeyboardButton(
+                text="Помощь",
+                callback_data='show#help_menu'
+            ),
+            types.InlineKeyboardButton(
                 text="Профиль",
                 callback_data='show#profile'
             )
