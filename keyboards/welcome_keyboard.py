@@ -51,6 +51,13 @@ async def get_welcome_kb(user_id):
                 callback_data='show#profile'
             )
         )
+
+        builder.row(
+            types.InlineKeyboardButton(
+                text="Обратная связь",
+                callback_data='show#feedback_menu'
+            )
+        )
         return builder.as_markup(resize_keyboard=True, input_field_placeholder="")
 
     if global_role is GlobalRoles.Developer:
@@ -116,8 +123,19 @@ async def get_welcome_kb(user_id):
 
         builder.row(
             types.InlineKeyboardButton(
+                text="Помощь",
+                callback_data='show#help_menu'
+            ),
+            types.InlineKeyboardButton(
                 text="Профиль",
                 callback_data='show#profile'
+            )
+        )
+
+        builder.row(
+            types.InlineKeyboardButton(
+                text="Обратная связь",
+                callback_data='show#feedback_menu'
             )
         )
         return builder.as_markup(resize_keyboard=True, input_field_placeholder="")
