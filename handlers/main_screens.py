@@ -10,7 +10,7 @@ from message_forms.welcome_form import get_welcome_form
 from models.server_users import get_user
 from models.user import User
 from roles.role_cache import users_role_cache
-from routing.router import handle_message, handle_message_image
+from routing.router import handle_message, handle_message_image, set_user_new_message
 from routing.user_routes import UserRoutes
 from states.room_state import RoomVisiterState
 from states.welcome_state import WelcomeState
@@ -51,6 +51,11 @@ async def cancel_command(message: Message, state: FSMContext):
 
 
 @router.message(Command("start"))
+async def start_command_handler(message: types.Message, state: FSMContext):
+    await set_user_new_message(message.from_user.id)
+    await start_command(message, state)
+
+
 async def start_command(message: types.Message, state: FSMContext):
     '''
     Создание пользователя,

@@ -85,11 +85,19 @@ async def get_welcome_kb(user_id):
 
         builder.row(
             types.InlineKeyboardButton(
+                text="Помощь",
+                callback_data='show#help_menu'
+            ),
+            types.InlineKeyboardButton(
                 text="Профиль",
                 callback_data='show#profile'
             )
         )
         builder.row(
+            types.InlineKeyboardButton(
+                text="Обратная связь",
+                callback_data='show#feedback_menu'
+            ),
             types.InlineKeyboardButton(
                 text="Управление",
                 callback_data='show#admin_menu'
