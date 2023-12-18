@@ -15,12 +15,20 @@ class StudyNote:
 
     def to_dict(self):
         return {
+            "room_id": self.room_id,
+            "room_name": self.room_name,
+            "teacher_id": self.teacher_id,
             "teacher": self.teacher,
             "pupil": self.pupil,
             "text": self.text,
             "time": self.made_time
         }
 
+    @staticmethod
+    def from_dict(note_dict):
+        note = StudyNote(note_dict['room_id'], note_dict['room_name'], note_dict['teacher_id'], note_dict['teacher'], note_dict['pupil'], note_dict['text'])
+        note.made_time = note_dict['time']
+        return note
 
 def __export_notes_json(notes: list[StudyNote]):
     notes_data = [

@@ -66,6 +66,8 @@ def load_room_from_json(room_id, db_room) -> Room:
         room.queue = db_room['queue']
     if 'banned' in db_room:
         room.banned = db_room['banned']
+    if 'notes' in db_room:
+        room.study_notes = room.decompress_notes(db_room['notes'])
     logging.info(f'Loaded room from database')
     return room
 
