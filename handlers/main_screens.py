@@ -7,6 +7,8 @@ from aiogram.fsm.context import FSMContext
 from firebase_manager.firebase import db_get_user_room
 from handlers.room_welcome import welcome_room
 from message_forms.welcome_form import get_welcome_form
+from models.room import Room
+from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
 from roles.role_cache import users_role_cache
@@ -63,12 +65,11 @@ async def start_command(message: types.Message, state: FSMContext):
     Отображение меню
     '''
     user: User = await get_user(message.from_user.id, True)
-    if user.room != '':
-        room = await db_get_user_room(user.user_id)
-        if 'room' in room:
-            await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
-            await welcome_room(message.from_user.id)
-            return
+    room: Room = await get_room(user.room)
+    if room:
+        await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
+        await welcome_room(message.from_user.id)
+        return
 
     await state.set_state(WelcomeState.WELCOME_SCREEN)
 

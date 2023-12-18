@@ -27,29 +27,6 @@ async def get_room_by_key(room_key) -> Room:
         return None
 
 
-async def db_get_user_room(user_id):
-    # TODO: Удалить метод, заменить на get_room
-    try:
-        room = await get_room_where_user(user_id)
-        if room:
-            return { 'room': room }
-
-        user: User = await get_user(user_id)
-        if user.room == '':
-            return { 'error': 'User has no connected room' }
-
-        room = await get_room_by_key(user.room)
-        if room:
-            return { 'room': room }
-        else:
-            return { 'error': 'No room found with such id' }
-
-    except Exception as e:
-        error_message = f"Error getting user's room. Error: {str(e)}"
-        logging.error(error_message)
-        return { 'error': str(e) }
-
-
 async def toggle_favorite_room(user_id):
     user: User = await get_user(user_id)
     return await user.toggle_favorite_room(user.room)

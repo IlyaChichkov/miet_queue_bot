@@ -3,6 +3,7 @@ import logging
 from firebase_manager.firebase import db_get_user_room, try_enter_queue, get_queue_users
 from keyboards.room_keyboard import *
 from models.room import Room
+from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles
@@ -115,9 +116,9 @@ async def get_users_list_form(user_id):
     form_message = 'Список пуст'
     form_kb = get_users_list_kb()
 
-    room_dict = await db_get_user_room(user_id)
-    if 'room' in room_dict:
-        room: Room = room_dict['room']
+    user = await get_user(user_id)
+    room = await get_room(user.room)
+    if room:
         form_message = '🔸 Админы:\n'
 
         for num, admin in enumerate(room.admins):

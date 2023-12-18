@@ -33,8 +33,8 @@ async def welcome_room(user_id):
     '''
     Вывод сообщения главного меню комнаты
     '''
-    room = await db_get_user_room(user_id)
     user: User = await get_user(user_id)
+    room: Room = await get_room(user.room)
 
     if 'room' in room:
         mesg = await get_welcome_message(user, room['room'])
