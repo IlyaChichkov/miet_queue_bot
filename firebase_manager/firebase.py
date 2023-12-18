@@ -28,6 +28,7 @@ async def get_room_by_key(room_key) -> Room:
 
 
 async def db_get_user_room(user_id):
+    # TODO: Удалить метод, заменить на get_room
     try:
         room = await get_room_where_user(user_id)
         if room:
@@ -223,6 +224,7 @@ async def get_queue_users(room_key):
     queue_users = await get_room_queue(room_key)
     users_names = []
     for user_id in queue_users:
+        # TODO: Часто необходимо узнать имя пользователя из очереди, следует изменить список на словарь [user_id: user_name]
         user: User = await get_user(user_id)
         users_names.append(user.name)
 

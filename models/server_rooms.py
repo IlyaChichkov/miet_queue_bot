@@ -21,6 +21,7 @@ async def get_room_where_user(user_id) -> Room:
 
 
 async def get_room(room_id) -> Room:
+    # TODO: Заменить список комнат на словарь по аналогии с пользователями
     logging.info(f'Get room ROOM_{room_id}')
     if room_id == '':
         return None

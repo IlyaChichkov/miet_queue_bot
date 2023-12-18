@@ -11,6 +11,7 @@ server_users_dict: dict[int, User] = {}
 
 
 async def get_user(user_id, create_new = False) -> User:
+    # TODO: Добавить ограниченный кэш пользователей
     user_id = int(user_id)
     logging.info(f'Get USER_{user_id}')
 
