@@ -64,22 +64,21 @@ async def queue_pop_handler(callback: types.CallbackQuery, state: FSMContext):
     '''
     user_id = callback.from_user.id
 
-    # user_name = await get_user_name(pop_user_id)
-    # await bot.send_message(user_id, f'Взял пользователя: <b>{user_name}</b>',
-    #                       parse_mode="HTML")
-
     pop_user_id = await queue_pop(user_id)
     if pop_user_id is None:
         logging.info(f'Try to pop empty queue.')
         await callback.answer('В очереди никого нет')
         return
 
-    logging.info(f'USER_{user_id} taking first user from queue.')
     await state.set_state(RoomVisiterState.ROOM_ASSIGN_SCREEN)
     await delete_cache_messages(user_id)
     user: User = await get_user(user_id)
+    room = await get_room(user.room)
     user.assigned_user_id = pop_user_id
 
+    user_name = await get_user_name(pop_user_id)
+    logging.info(f'USER_{user_id} taking USER_{pop_user_id} from queue')
+    await send_message(user_id, f'[{room.name}] Принял пользователя: <b>{user_name}</b>')
     await assigned_screen(callback, pop_user_id)
     await user_assigned_event.fire(user_id, pop_user_id)
 
@@ -219,7 +218,9 @@ async def assigned_screen(message: types.Message, pop_user_id):
     '''
     Меню для модераторов с назначенным студентом
     '''
-    log_user_info(message.from_user.id, f'Drawing assigned screen to user.')
+    user_id = message.from_user.id
+    log_user_info(user_id, f'Drawing assigned screen to user.')
+
     form_message, form_kb = await get_assigned_mesg(pop_user_id)
 
-    await handle_message(message.from_user.id, form_message, reply_markup=form_kb)
+    await handle_message(user_id, form_message, reply_markup=form_kb)
