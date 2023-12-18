@@ -1,6 +1,6 @@
 import logging
 
-from firebase_manager.firebase import db_get_user_room, try_enter_queue, get_queue_users
+from firebase_manager.firebase import try_enter_queue, get_queue_users
 from keyboards.room_keyboard import *
 from models.room import Room
 from models.server_rooms import get_room

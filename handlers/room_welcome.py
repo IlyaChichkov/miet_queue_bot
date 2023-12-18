@@ -4,16 +4,13 @@ import logging
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
 
-from bot_conf.bot import bot
-from events.queue_events import update_queue_event, users_notify_queue_changed_event, user_joined_queue_event, \
-    users_notify_queue_skipped, favorite_toggle_event, user_leave_room_event, queue_enable_state_event
-from firebase_manager.firebase import db_get_user_room, is_user_name_default, get_user_name
+from events.queue_events import update_queue_event, user_leave_room_event, queue_enable_state_event
 from message_forms.room_forms import get_welcome_message
 from models.room import Room
 from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
-from routing.router import handle_message, send_message, answer_message
+from routing.router import handle_message, send_message
 from routing.user_routes import UserRoutes
 from states.room_state import RoomVisiterState
 
@@ -36,17 +33,15 @@ async def welcome_room(user_id):
     user: User = await get_user(user_id)
     room: Room = await get_room(user.room)
 
-    if 'room' in room:
-        mesg = await get_welcome_message(user, room['room'])
+    if room:
+        mesg = await get_welcome_message(user, room)
         menu_text = mesg['mesg_text']
         if mesg['queue_list'] != '':
             menu_text = mesg['mesg_text'] + '\n' + mesg['queue_list']
         await handle_message(user_id, menu_text, reply_markup=mesg['keyboard'])
         await user.set_route(UserRoutes.RoomMenu)
-
     else:
-        await send_message(f"Произошла ошибка при присоединении к комнате.\n"
-                             f"{room['error']}")
+        await send_message(f"Произошла ошибка при присоединении к комнате.\n")
 
 
 @router.message(RoomVisiterState.ROOM_WELCOME_SCREEN)

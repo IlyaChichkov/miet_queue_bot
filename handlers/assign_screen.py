@@ -2,7 +2,7 @@ import logging
 from aiogram import Router, types
 from bot_conf.bot import bot
 from events.queue_events import user_assigned_event
-from firebase_manager.firebase import get_user_name, get_user_room_key, get_room_by_key
+from firebase_manager.firebase import get_user_name, get_user_room_key, get_room
 from routing.router import send_message
 
 router = Router()
@@ -20,7 +20,7 @@ async def assign_user(moderator_id, user_id):
         logging.error(str(e))
 
     #room_key = await get_user_room_key(moderator_id)
-    #room = await get_room_by_key(room_key)
+    #room = await get_room(room_key)
 
     #for user_num, user_in_queue in enumerate(room.queue):
     #    print(f'Send message about {user_num} to {user_in_queue}')

@@ -18,15 +18,6 @@ firebase_admin.initialize_app(cred, {
 })
 
 
-async def get_room_by_key(room_key) -> Room:
-    room = await get_room(room_key)
-    if room:
-        return room
-    else:
-        logging.warning(f'Null room return by room_id! ROOM_{room_key}')
-        return None
-
-
 async def toggle_favorite_room(user_id):
     user: User = await get_user(user_id)
     return await user.toggle_favorite_room(user.room)
@@ -97,7 +88,7 @@ async def get_global_role_users_dict():
 
 async def leave_room(user_id):
     user: User = await get_user(user_id)
-    room = await get_room_by_key(user.room)
+    room = await get_room(user.room)
     if room is not None:
         logging.info(f'USER_{user_id} leave ROOM_{user.room} ({room.name})')
         await room.remove_user(user_id)
@@ -162,10 +153,6 @@ async def user_join_room(user_id, room_code, user_role):
         room = await get_room_by_join_code(room_code, user_role)
 
         if room:
-            print('Check user is banned in room...')
-            print(room.banned)
-            print(user_id)
-            print(int(user_id) in room.banned)
             if await room.check_banned(user_id):
                 return { 'error': 'Banned', 'error_text': 'Вы были добавлены в черный список комнаты.' }
 
@@ -176,9 +163,6 @@ async def user_join_room(user_id, room_code, user_role):
 
             room_key = room.room_id
             user: User = await get_user(user_id)
-            #has_default_name = await user.check_has_default_name()
-            #if has_default_name:
-            #    return {'error': "User has default name", 'error_text': 'Пожалуйста поменяйте стандартное имя в настройках профиля!'}
             await user.set_room(room_key)
             await user.update_role(role_to_room_list[user_role])
             await user_joined_event.fire(room, user_id, user_role)
@@ -193,7 +177,7 @@ async def user_join_room(user_id, room_code, user_role):
 
 
 async def get_room_queue(room_key):
-    room = await get_room_by_key(room_key)
+    room = await get_room(room_key)
     return room.queue
 
 
@@ -241,12 +225,12 @@ async def enter_queue(user_id):
 
 
 async def is_autoqueue_enabled(user_id):
-    room = await get_room_by_key(await get_user_room_key(user_id))
+    room = await get_room(await get_user_room_key(user_id))
     return room.is_queue_on_join
 
 
 async def is_user_in_queue(user_id):
-    room = await get_room_by_key(await get_user_room_key(user_id))
+    room = await get_room(await get_user_room_key(user_id))
     if room and user_id in room.queue:
         return {'result': True, 'place': room.queue.index(user_id), 'len': len(room.queue)}
     return {'result': False, 'place': None, 'len': None}
@@ -266,7 +250,7 @@ async def get_room_queue_enabled_by_userid(user_id) -> bool:
 
 
 async def get_room_queue_enabled(room_key) -> bool:
-    room = await get_room_by_key(room_key)
+    room = await get_room(room_key)
     if room:
         return room.is_queue_enabled
     return None
@@ -274,7 +258,7 @@ async def get_room_queue_enabled(room_key) -> bool:
 
 async def get_user_role(user_id):
     room_key = await get_user_room_key(user_id)
-    room = await get_room_by_key(room_key)
+    room = await get_room(room_key)
     user_role = room.get_user_group(user_id)
     logging.info(f'USER_{user_id}: Get user role: {user_role}')
     return user_role
@@ -299,7 +283,7 @@ async def generate_random_queue(room, queue_list):
 
 async def switch_room_queue_enabled(user_id):
     room_key = await get_user_room_key(user_id)
-    room = await get_room_by_key(room_key)
+    room = await get_room(room_key)
     await room.switch_queue_enabled()
     new_val: bool = room.is_queue_enabled
     queue_state = {
@@ -312,7 +296,7 @@ async def switch_room_queue_enabled(user_id):
 
 
 async def change_room_auto_queue(room_key):
-    room = await get_room_by_key(room_key)
+    room = await get_room(room_key)
     await room.switch_autoqueue_enabled()
     logging.info(f'Auto queue join in room {room_key} set to {room.is_queue_on_join}')
     return room.is_queue_on_join
@@ -322,7 +306,7 @@ async def change_room_name(user_id, new_name):
     user: User = await get_user(user_id)
     room_key = user.room
 
-    room = await get_room_by_key(room_key)
+    room = await get_room(room_key)
     await room.update_name(new_name)
     return True
 
@@ -351,7 +335,7 @@ async def get_user_name(user_id):
 
 async def get_user_role_at_room(user_id) -> UserRoles:
     user: User = await get_user(user_id)
-    room = await get_room_by_key(user.room)
+    room = await get_room(user.room)
     if room:
         return room.get_user_role(user_id)
     return None
@@ -374,7 +358,7 @@ async def get_user_current_role(user_id):
 
 async def queue_pop(user_id):
     user: User = await get_user(user_id)
-    room = await get_room_by_key(user.room)
+    room = await get_room(user.room)
     user_pop_id = await room.queue_pop(user_id)
     return user_pop_id
 

@@ -4,7 +4,6 @@ from aiogram import Router, F, types
 from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile, InputMediaPhoto, InputFile
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-from firebase_manager.firebase import db_get_user_room
 from handlers.room_welcome import welcome_room
 from message_forms.welcome_form import get_welcome_form
 from models.room import Room

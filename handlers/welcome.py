@@ -12,7 +12,7 @@ from keyboards.welcome_keyboard import get_welcome_kb
 from message_forms.welcome_form import get_favorites_form
 from models.room import Room
 from roles.special_roles import check_access_level, GlobalRoles
-from routing.router import handle_message
+from routing.router import handle_message, set_user_new_message
 from states.room_state import RoomVisiterState
 from states.welcome_state import WelcomeState
 
@@ -182,7 +182,7 @@ async def join_room(message: types.Message, state: FSMContext):
     Присоединение к комнате
     '''
     user_id = message.from_user.id
-
+    await set_user_new_message(user_id)
     filter_join_code = re.findall(r"^[0-9]+$", message.text)
 
     check_user_code = len(filter_join_code) > 0 and len(filter_join_code[0]) == 4
