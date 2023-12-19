@@ -23,8 +23,8 @@ class User:
 
         self.has_default_name = True
 
-        # Cache only
         self.route: UserRoutes = UserRoutes.Empty
+        # Cache only
         self.create_new_message = True
         self.last_message_type = ''
         self.last_message: aiogram.types.Message = None
@@ -135,6 +135,15 @@ class User:
         room = await get_room(self.room)
         if room and self.user_id in room.queue:
             await room.queue_remove(self.user_id)
+
+
+            from models.room_journal import RoomJournal
+            from models.server_jornals import get_room_journal
+            from models.room_event import RoomEvent
+
+            journal: RoomJournal = await get_room_journal(room.room_id)
+            await journal.add_event(RoomEvent.UserLeaveQueue(self.user_id))
+
             await asyncio.create_task(update_queue_event.fire(room.room_id, self.user_id))
         return True
 
@@ -158,6 +167,13 @@ class User:
                 return -1
             place = len(room.queue) + 1
             await room.queue_add(self.user_id)
+
+            from models.room_journal import RoomJournal
+            from models.server_jornals import get_room_journal
+            from models.room_event import RoomEvent
+
+            journal: RoomJournal = await get_room_journal(room.room_id)
+            await journal.add_event(RoomEvent.UserEnterQueue(self.user_id))
             await asyncio.create_task(user_joined_queue_event.fire(room, self.user_id, place, notify_mod))
             await asyncio.create_task(update_queue_event.fire(room.room_id, self.user_id))
             return place
@@ -220,5 +236,6 @@ class User:
             "room": self.room,
             "own_rooms": self.owned_rooms,
             "favorites": self.favorites,
-            "has_verified_name": self.has_verified_name
+            "has_verified_name": self.has_verified_name,
+            "route": self.route.value
         }

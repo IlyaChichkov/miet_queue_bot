@@ -1,8 +1,9 @@
 from aiogram import types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from firebase_manager.firebase import get_queue_users, get_user_room_key, get_room_queue_enabled_by_userid
+from firebase_manager.firebase import get_queue_users, get_room_queue_enabled_by_userid
 from keyboards.queue_keyboard import get_main_queue_kb, get_queue_kb
+from models.server_users import get_user
 from roles.role_cache import get_user_role
 
 
@@ -31,7 +32,8 @@ async def get_queue_main_form(user_id):
     user_role = await get_user_role(user_id)
     main_form = f"✏️Очередь для сдачи:\n"
 
-    room_queue = await get_queue_users(await get_user_room_key(user_id))
+    user = await get_user(user_id)
+    room_queue = await get_queue_users(user.room)
     queue_message = f"Сейчас в очереди никого 👻"
 
     if room_queue:
@@ -68,7 +70,8 @@ async def get_queue_main_form(user_id):
 
 
 async def get_queue_list_mesg(user_id):
-    room_queue = await get_queue_users(await get_user_room_key(user_id))
+    user = await get_user(user_id)
+    room_queue = await get_queue_users(user.room)
     message = f"Сейчас в очереди никого 👻"
     kb = get_queue_kb(False)
     if room_queue:

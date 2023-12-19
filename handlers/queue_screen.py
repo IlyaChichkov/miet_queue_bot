@@ -8,13 +8,15 @@ from events.queue_events import update_queue_event, user_assigned_event, usernam
 from firebase_manager.firebase import queue_pop, switch_room_queue_enabled, get_user_name
 from handlers.room_welcome import welcome_room_state
 from message_forms.assign_form import get_assigned_mesg, get_assigned_add_note
-from message_forms.queue_form import get_queue_list_mesg, get_noqueue_members_mesg, get_queue_main_form
+from message_forms.queue_form import get_queue_main_form
 from models.note import StudyNote
 from models.room import Room
+from models.room_event import RoomEvent
+from models.room_journal import RoomJournal
+from models.server_jornals import get_room_journal
 from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
-from roles.check_user_role import IsAdmin
 from routing.router import handle_message, send_message
 from routing.user_routes import UserRoutes
 from states.room_state import RoomVisiterState
@@ -64,22 +66,24 @@ async def queue_pop_handler(callback: types.CallbackQuery, state: FSMContext):
     '''
     user_id = callback.from_user.id
 
-    # user_name = await get_user_name(pop_user_id)
-    # await bot.send_message(user_id, f'Взял пользователя: <b>{user_name}</b>',
-    #                       parse_mode="HTML")
-
     pop_user_id = await queue_pop(user_id)
     if pop_user_id is None:
         logging.info(f'Try to pop empty queue.')
         await callback.answer('В очереди никого нет')
         return
 
-    logging.info(f'USER_{user_id} taking first user from queue.')
     await state.set_state(RoomVisiterState.ROOM_ASSIGN_SCREEN)
     await delete_cache_messages(user_id)
     user: User = await get_user(user_id)
+    room = await get_room(user.room)
     user.assigned_user_id = pop_user_id
 
+    user_name = await get_user_name(pop_user_id)
+    logging.info(f'USER_{user_id} taking USER_{pop_user_id} from queue')
+
+    journal: RoomJournal = await get_room_journal(room.room_id)
+    await journal.add_event(RoomEvent.UserAssigned(user_id))
+    await send_message(user_id, f'[{room.name}] Принял пользователя: <b>{user_name}</b>')
     await assigned_screen(callback, pop_user_id)
     await user_assigned_event.fire(user_id, pop_user_id)
 
@@ -183,10 +187,14 @@ async def assigned_note_added(message: types.Message, state: FSMContext):
 
     teacher_name = await get_user_name(user.user_id)
     pupil_name = await get_user_name(user.assigned_user_id)
-    room.study_notes.append(StudyNote(room.room_id, room.name, user.user_id, teacher_name, pupil_name, message.text))
+    note = StudyNote(room.room_id, room.name, user.user_id, teacher_name, pupil_name, message.text)
+    room.study_notes.append(note)
     logging.info(f'Note was added by {user.user_id} to {user.assigned_user_id}\nNote: {message.text}')
     await send_message(message.from_user.id, f"Заметка добавлена!")
     # Выход на экран очереди
+
+    journal: RoomJournal = await get_room_journal(room.room_id)
+    await journal.add_event(RoomEvent.NoteCreated(note.id))
     await exit_assigned_queue(message, state)
 
 
@@ -219,7 +227,11 @@ async def assigned_screen(message: types.Message, pop_user_id):
     '''
     Меню для модераторов с назначенным студентом
     '''
-    log_user_info(message.from_user.id, f'Drawing assigned screen to user.')
+    user_id = message.from_user.id
+    log_user_info(user_id, f'Drawing assigned screen to user.')
+
+    user = await get_user(user_id)
+    await user.set_route(UserRoutes.AssignmentMenu)
     form_message, form_kb = await get_assigned_mesg(pop_user_id)
 
-    await handle_message(message.from_user.id, form_message, reply_markup=form_kb)
+    await handle_message(user_id, form_message, reply_markup=form_kb)

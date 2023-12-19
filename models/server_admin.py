@@ -9,7 +9,7 @@ from pathlib import Path
 
 from handlers.main_screens import start_command
 from models.server_passwords import server_passwords
-from models.server_rooms import server_rooms, load_room_from_json, add_room
+from models.server_rooms import server_rooms_dict, load_room_from_json, add_room
 from models.server_users import server_users_dict, load_user_from_json, add_user, get_user
 from models.user import User
 from routing.router import send_document
@@ -36,7 +36,7 @@ async def show_cache():
     Составление текста с кешем для отправки или записи в файл
     '''
     message = 'Rooms:\n'
-    for num, room in enumerate(server_rooms):
+    for num, room in enumerate(server_rooms_dict.values()):
         r = json.dumps(room.to_log())
         loaded_r = json.loads(r)
         message += f' {num+1}) {json.dumps(loaded_r, indent=2, ensure_ascii=False)}\n'
@@ -62,7 +62,7 @@ async def __load_rooms():
             for room in rooms_list:
                 room_key, room_data = room
                 loaded_room = load_room_from_json(room_key, room_data)
-                await add_room(loaded_room)
+                await add_room(room_key, loaded_room)
     except Exception as ex:
         logging.error(f'Failed to load rooms data from Firebase: {ex}')
     finally:
@@ -80,7 +80,7 @@ async def __load_users():
             users_list = list(users_ref.items())
             for user in users_list:
                 user_key, user_data = user
-                loaded_user = load_user_from_json(user_key, user_data)
+                loaded_user = await load_user_from_json(user_key, user_data)
                 await add_user(loaded_user.user_id, loaded_user)
     except Exception as ex:
         logging.error(f'Failed to load users data from Firebase: {ex}')
@@ -110,7 +110,7 @@ async def update_cache():
 
 
 async def delete_cache():
-    server_rooms.clear()
+    server_rooms_dict.clear()
     server_users_dict.clear()
     server_passwords.clear()
 

@@ -12,7 +12,6 @@ from models.room import Room
 from models.server_rooms import get_room
 from models.server_users import get_user, remove_user_from_db
 from models.user import User
-from roles.check_user_role import IsAdmin, IsModerator
 from routing.router import handle_message, send_message
 from routing.user_routes import UserRoutes
 
@@ -45,20 +44,6 @@ async def profile_notes_call(callback: types.CallbackQuery, state: FSMContext):
     kb = builder.as_markup(resize_keyboard=True)
 
     await handle_message(callback.from_user.id, message_data, kb)
-
-
-@router.message(IsAdmin(), F.text.lower() == "мои заметки", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
-@router.message(IsModerator(), F.text.lower() == "мои заметки", RoomVisiterState.PROFILE_SETTINGS_SCREEN)
-async def profile_notes(message: types.Message, state: FSMContext):
-    '''
-    Отображение заметок преподавателя
-    '''
-    user: User = await get_user(message.from_user.id)
-    room: Room = await get_room(user.room)
-
-    message_data = export_study_notes_by_user(room.study_notes, user.user_id)
-    await handle_message(message.from_user.id, message_data)
-    await profile_settings_state(message, state)
 
 
 @router.callback_query(F.data == "action#delete_profile", RoomVisiterState.PROFILE_SETTINGS_SCREEN)

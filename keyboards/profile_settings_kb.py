@@ -1,5 +1,5 @@
 from aiogram import types
-from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from firebase_manager.firebase import get_user_role_at_room
 from roles.user_roles_enum import UserRoles
@@ -25,6 +25,10 @@ async def get_settings_kb(user_id):
             types.InlineKeyboardButton(
                 text="Мои заметки",
                 callback_data=f'show#my_notes'
+            ),
+            types.InlineKeyboardButton(
+                text="История",
+                callback_data=f'show#assign_history'
             )
         )
 

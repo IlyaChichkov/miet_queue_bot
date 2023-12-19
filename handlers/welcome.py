@@ -11,8 +11,9 @@ from handlers.room_welcome import welcome_room_state, welcome_room
 from keyboards.welcome_keyboard import get_welcome_kb
 from message_forms.welcome_form import get_favorites_form
 from models.room import Room
+from models.room_event import RoomEvent
 from roles.special_roles import check_access_level, GlobalRoles
-from routing.router import handle_message
+from routing.router import handle_message, set_user_new_message
 from states.room_state import RoomVisiterState
 from states.welcome_state import WelcomeState
 
@@ -164,14 +165,14 @@ async def create_room(message: types.Message, state: FSMContext):
     '''
     Создание комнаты
     '''
-    result = await db_create_room(message.from_user.id, message.text)
-    is_room_created = 'room' in result
-    if is_room_created:
+    user_id = message.from_user.id
+    room, error = await db_create_room(user_id, message.text)
+    if room:
         log_user_info(message.from_user.id, f'Try create room, name: {message.text}')
         await state.set_state(RoomVisiterState.ROOM_WELCOME_SCREEN)
         await welcome_room(message.from_user.id)
     else:
-        await handle_message(message.from_user.id, f"Не получилось создать комнату. Ошибка: {result['error_text']}")
+        await handle_message(message.from_user.id, f"Не получилось создать комнату. Ошибка: {error}")
         await state.set_state(WelcomeState.WELCOME_SCREEN)
         await start_command(message, state)
 
@@ -182,7 +183,7 @@ async def join_room(message: types.Message, state: FSMContext):
     Присоединение к комнате
     '''
     user_id = message.from_user.id
-
+    await set_user_new_message(user_id)
     filter_join_code = re.findall(r"^[0-9]+$", message.text)
 
     check_user_code = len(filter_join_code) > 0 and len(filter_join_code[0]) == 4

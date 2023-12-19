@@ -34,13 +34,13 @@ async def try_get_user_from_db(user_id) -> User:
         users_ref = db.reference(f'/users/')
         user_db = users_ref.order_by_child('tg_id').equal_to(user_id).get()
         user_key, user_data = list(user_db.items())[0]
-        return load_user_from_json(user_key, user_data)
+        return await load_user_from_json(user_key, user_data)
     except Exception as e:
         logging.warning(f'Load user from database failed. Exception: {str(e)}')
         return None
 
 
-def load_user_from_json(user_key, user_data) -> User:
+async def load_user_from_json(user_key, user_data) -> User:
     if user_data is None:
         return None
 
@@ -62,6 +62,10 @@ def load_user_from_json(user_key, user_data) -> User:
 
     if 'has_verified_name' in user_data:
         user.has_verified_name = user_data['has_verified_name']
+
+    if 'route' in user_data:
+        from routing.user_routes import UserRoutes
+        await user.set_route(UserRoutes(int(user_data['route'])))
     return user
 
 

@@ -1,4 +1,7 @@
 import asyncio
+import base64
+import gzip
+import json
 import logging
 
 from firebase_admin import db
@@ -28,8 +31,10 @@ class Room:
 
         self.queue = []
         self.banned = []
-        # Cache only
+
         self.study_notes: list[StudyNote] = []
+
+        # Cache only
 
         # Set values
         self.name = name
@@ -322,6 +327,21 @@ class Room:
         rooms_ref = db.reference('/rooms')
         rooms_ref.child(self.room_id).child('users').update(self.users)
 
+    def compress_notes(self):
+        if len(self.study_notes) < 1:
+            return None
+        study_notes_json = json.dumps([note.to_dict() for note in self.study_notes])
+        compressed_data = gzip.compress(study_notes_json.encode())
+        encoded_data = base64.b64encode(compressed_data).decode('utf-8')
+        return encoded_data
+
+    def decompress_notes(self, encoded_data):
+        decoded_data = base64.b64decode(encoded_data)
+        decompressed_data = gzip.decompress(decoded_data)
+        study_notes = [StudyNote.from_dict(note_dict) for note_dict in json.loads(decompressed_data)]
+        return study_notes
+
+
     def to_dict(self):
         return {
             "name": self.name,
@@ -333,7 +353,8 @@ class Room:
             "queue_on_join": self.is_queue_on_join,
             "join_code": self.users_join_code,
             "mod_password": self.moderators_join_code,
-            "banned": self.banned
+            "banned": self.banned,
+            "notes": self.compress_notes()
         }
 
     def to_log(self):
@@ -348,6 +369,6 @@ class Room:
             "queue_on_join": self.is_queue_on_join,
             "join_code": self.users_join_code,
             "mod_password": self.moderators_join_code,
-            "study_notes": self.study_notes,
+            "study_notes": [note.to_dict() for note in self.study_notes],
             "banned": self.banned
         }

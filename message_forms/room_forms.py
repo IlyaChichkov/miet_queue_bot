@@ -1,8 +1,9 @@
 import logging
 
-from firebase_manager.firebase import db_get_user_room, try_enter_queue, get_queue_users
+from firebase_manager.firebase import try_enter_queue, get_queue_users
 from keyboards.room_keyboard import *
 from models.room import Room
+from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles
@@ -45,7 +46,12 @@ async def get_welcome_queue_message(room: Room):
     queue_list = '<b>Очередь:</b>\n'
     overflow = False
     max_display_count = 5
-    users_names = await get_queue_users(room.room_id)
+
+    users_names = []
+    for queue_user_id in room.queue:
+        user: User = await get_user(queue_user_id)
+        users_names.append(user.name)
+
     disp_count = len(users_names) - max_display_count
     if disp_count > 0:
         users_names = users_names[:max_display_count]
@@ -115,9 +121,9 @@ async def get_users_list_form(user_id):
     form_message = 'Список пуст'
     form_kb = get_users_list_kb()
 
-    room_dict = await db_get_user_room(user_id)
-    if 'room' in room_dict:
-        room: Room = room_dict['room']
+    user = await get_user(user_id)
+    room = await get_room(user.room)
+    if room:
         form_message = '🔸 Админы:\n'
 
         for num, admin in enumerate(room.admins):
