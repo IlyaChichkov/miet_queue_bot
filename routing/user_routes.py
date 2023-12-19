@@ -10,3 +10,4 @@ class UserRoutes(enum.Enum):
     Profile = enum.auto()
     RoomUsersList = enum.auto()
     MakeAnnouncement = enum.auto()
+    AssignmentMenu = enum.auto()

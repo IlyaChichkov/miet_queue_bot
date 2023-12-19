@@ -230,6 +230,8 @@ async def assigned_screen(message: types.Message, pop_user_id):
     user_id = message.from_user.id
     log_user_info(user_id, f'Drawing assigned screen to user.')
 
+    user = await get_user(user_id)
+    await user.set_route(UserRoutes.AssignmentMenu)
     form_message, form_kb = await get_assigned_mesg(pop_user_id)
 
     await handle_message(user_id, form_message, reply_markup=form_kb)
