@@ -31,6 +31,10 @@ async def get_history(user_id):
     journal: RoomJournal = await get_room_journal(user.room)
     events = journal.get_events_by_type(RoomEventType.USER_ASSIGNED)
     history_msg = 'История:\n'
+    if len(events) > 10:
+        history_msg = 'История (Последние 10):\n'
+        events = events[-10:]
+
     for ev in events:
         user_name = await get_user_name(int(ev.event_data['user_id']))
         history_msg += f"[{ev.datetime.split(' ')[1]}] Принял пользователя <b>{user_name}</b>\n"
