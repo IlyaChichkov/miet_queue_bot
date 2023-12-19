@@ -369,6 +369,6 @@ class Room:
             "queue_on_join": self.is_queue_on_join,
             "join_code": self.users_join_code,
             "mod_password": self.moderators_join_code,
-            "study_notes": self.study_notes,
+            "study_notes": [note.to_dict() for note in self.study_notes],
             "banned": self.banned
         }
