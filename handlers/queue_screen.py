@@ -8,7 +8,7 @@ from events.queue_events import update_queue_event, user_assigned_event, usernam
 from firebase_manager.firebase import queue_pop, switch_room_queue_enabled, get_user_name
 from handlers.room_welcome import welcome_room_state
 from message_forms.assign_form import get_assigned_mesg, get_assigned_add_note
-from message_forms.queue_form import get_queue_list_mesg, get_noqueue_members_mesg, get_queue_main_form
+from message_forms.queue_form import get_queue_main_form
 from models.note import StudyNote
 from models.room import Room
 from models.room_event import RoomEvent
@@ -17,7 +17,6 @@ from models.server_jornals import get_room_journal
 from models.server_rooms import get_room
 from models.server_users import get_user
 from models.user import User
-from roles.check_user_role import IsAdmin
 from routing.router import handle_message, send_message
 from routing.user_routes import UserRoutes
 from states.room_state import RoomVisiterState

@@ -12,7 +12,6 @@ from models.room import Room
 from models.server_rooms import get_room
 from models.server_users import get_user, remove_user_from_db
 from models.user import User
-from roles.check_user_role import IsAdmin, IsModerator
 from routing.router import handle_message, send_message
 from routing.user_routes import UserRoutes
 

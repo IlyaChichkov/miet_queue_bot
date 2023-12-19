@@ -10,7 +10,6 @@ from bot_conf.bot_logging import log_database_update
 from events.queue_events import update_room_event, update_queue_event, users_notify_queue_changed_event, \
     users_notify_queue_skipped, user_leave_room_event
 from models.note import StudyNote
-from models.room_journal import RoomJournal
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles

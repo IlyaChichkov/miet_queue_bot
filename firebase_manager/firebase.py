@@ -10,7 +10,7 @@ from models.room_journal import RoomJournal
 from events.queue_events import queue_enable_state_event, user_joined_event, username_changed_event, update_queue_event
 from models.room import Room
 from models.server_jornals import get_room_journal
-from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code, remove_room
+from models.server_rooms import get_room, create_room, get_room_by_join_code, remove_room
 from models.server_users import get_user
 from models.user import User
 from roles.user_roles_enum import UserRoles

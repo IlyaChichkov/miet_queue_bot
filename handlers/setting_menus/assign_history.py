@@ -9,7 +9,7 @@ from models.server_users import get_user
 from models.user import User
 from routing.router import handle_message
 
-from firebase_manager.firebase import get_global_role_users_dict, get_user_name
+from firebase_manager.firebase import get_user_name
 
 router = Router()
 
