@@ -4,7 +4,7 @@ import logging
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
 
-from events.queue_events import update_queue_event, user_leave_room_event, queue_enable_state_event
+from events.queue_events import update_queue_event, user_leave_room_event, queue_enable_state_event, user_joined_event
 from message_forms.room_forms import get_welcome_message
 from models.room import Room
 from models.server_rooms import get_room
@@ -50,13 +50,36 @@ async def welcome_room_state(message: types.Message):
 
 
 async def update_handler(room_id, user_id):
+    logging.info('-- UPDATE OTHER USERS MENU --')
     room: Room = await get_room(room_id)
     for room_user in room.get_users_list():
         user: User = await get_user(room_user)
+        logging.info(f'-- UPDATE USER_{room_user} by ROUTE {user.route} --')
         if user.route is UserRoutes.RoomMenu:
             await welcome_room(room_user)
 
 
-queue_enable_state_event.add_handler(update_handler)
-user_leave_room_event.add_handler(update_handler)
-update_queue_event.add_handler(update_handler)
+async def queue_enable_state_event_handler(room_id, user_id):
+    logging.info('-- queue_enable_state_event --')
+    await asyncio.create_task(update_handler(room_id, user_id))
+
+
+async def user_leave_room_event_handler(room_id, user_id):
+    logging.info('-- user_leave_room_event_handler --')
+    await asyncio.create_task(update_handler(room_id, user_id))
+
+
+async def user_joined_event_handler(room_id, user_id):
+    logging.info('-- user_joined_event_handler --')
+    await asyncio.create_task(update_handler(room_id, user_id))
+
+
+async def update_queue_event_handler(room_id, user_id):
+    logging.info('-- update_queue_event --')
+    await asyncio.create_task(update_handler(room_id, user_id))
+
+
+queue_enable_state_event.add_handler(queue_enable_state_event_handler)
+user_leave_room_event.add_handler(user_leave_room_event_handler)
+user_joined_event.add_handler(user_joined_event_handler)
+update_queue_event.add_handler(update_queue_event_handler)

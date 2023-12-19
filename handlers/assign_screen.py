@@ -1,8 +1,7 @@
 import logging
-from aiogram import Router, types
-from bot_conf.bot import bot
+from aiogram import Router
 from events.queue_events import user_assigned_event
-from firebase_manager.firebase import get_user_name, get_user_room_key, get_room
+from firebase_manager.firebase import get_user_name
 from routing.router import send_message
 
 router = Router()
@@ -18,16 +17,6 @@ async def assign_user(moderator_id, user_id):
         await send_message(user_id, f'Вас принял для сдачи: <b>{user_name}</b>')
     except Exception as e:
         logging.error(str(e))
-
-    #room_key = await get_user_room_key(moderator_id)
-    #room = await get_room(room_key)
-
-    #for user_num, user_in_queue in enumerate(room.queue):
-    #    print(f'Send message about {user_num} to {user_in_queue}')
-    #    await bot.send_message(user_in_queue, f'Очередь сдвинулась, вы на <b>{user_num + 1}</b> месте', parse_mode="HTML")
-    #await welcome_room(message)
-    #state = dp.current_state(chat=message.chat.id, user=user_id)
-    #await state.set_state(User.accepted)
 
 
 user_assigned_event.add_handler(assign_user)

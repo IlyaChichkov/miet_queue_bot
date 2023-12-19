@@ -6,7 +6,7 @@ from pathlib import Path
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot_conf.bot_logging import log_user_info
-from firebase_manager.firebase import change_room_auto_queue, get_user_room_key, change_room_name, delete_room
+from firebase_manager.firebase import change_room_auto_queue, change_room_name, delete_room
 from handlers.main_screens import start_command
 from handlers.room_actions import RoomVisiterState
 from handlers.room_welcome import welcome_room_state
@@ -35,7 +35,8 @@ async def room_settings_state(callback: types.CallbackQuery, state: FSMContext):
 @router.message(F.text.startswith("Автоочередь"), RoomVisiterState.ROOM_SETTINGS_SCREEN)
 @router.callback_query(F.data == "action#room_autoqueue_toggle", RoomVisiterState.ROOM_SETTINGS_SCREEN)
 async def room_toggle_autoqueue(message: types.Message, state: FSMContext):
-    autoqueue = await change_room_auto_queue(await get_user_room_key(message.from_user.id))
+    user = await get_user(message.from_user.id)
+    autoqueue = await change_room_auto_queue(user.room)
     kb = await get_settings_kb(message.from_user.id)
     msg = {
         True: 'включена',

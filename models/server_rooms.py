@@ -9,7 +9,7 @@ from models.server_users import get_user
 from models.user import User
 from utils import generate_code
 
-server_rooms_dict: dict[int, Room] = {}
+server_rooms_dict: dict[str, Room] = {}
 
 async def get_room_where_user(user_id) -> Room:
     logging.info(f'Get room containing USER_{user_id}')

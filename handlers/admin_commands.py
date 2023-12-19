@@ -66,11 +66,12 @@ async def show_server_cache(message: types.Message, state: FSMContext):
 
 @router.callback_query(F.data == "action#update_server_cache")
 async def update_server_cache(callback: types.CallbackQuery, state: FSMContext):
-    has_access = await check_access_level(callback.from_user.id, GlobalRoles.Developer)
+    user_id = callback.from_user.id
+    has_access = await check_access_level(user_id, GlobalRoles.Developer)
     if has_access:
         await callback.answer("Обновление кеша на сервере данными из БД...")
         await update_cache()
-        await callback.answer("Готово!")
+        await send_message(user_id, "Обновление кеша завершено!")
 
 
 @router.callback_query(F.data == "action#get_log_files")

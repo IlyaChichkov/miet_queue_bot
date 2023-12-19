@@ -80,7 +80,7 @@ async def __load_users():
             users_list = list(users_ref.items())
             for user in users_list:
                 user_key, user_data = user
-                loaded_user = load_user_from_json(user_key, user_data)
+                loaded_user = await load_user_from_json(user_key, user_data)
                 await add_user(loaded_user.user_id, loaded_user)
     except Exception as ex:
         logging.error(f'Failed to load users data from Firebase: {ex}')

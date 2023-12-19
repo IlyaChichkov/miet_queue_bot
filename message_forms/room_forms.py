@@ -46,7 +46,12 @@ async def get_welcome_queue_message(room: Room):
     queue_list = '<b>Очередь:</b>\n'
     overflow = False
     max_display_count = 5
-    users_names = await get_queue_users(room.room_id)
+
+    users_names = []
+    for queue_user_id in room.queue:
+        user: User = await get_user(queue_user_id)
+        users_names.append(user.name)
+
     disp_count = len(users_names) - max_display_count
     if disp_count > 0:
         users_names = users_names[:max_display_count]

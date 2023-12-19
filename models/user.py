@@ -23,8 +23,8 @@ class User:
 
         self.has_default_name = True
 
-        # Cache only
         self.route: UserRoutes = UserRoutes.Empty
+        # Cache only
         self.create_new_message = True
         self.last_message_type = ''
         self.last_message: aiogram.types.Message = None
@@ -236,5 +236,6 @@ class User:
             "room": self.room,
             "own_rooms": self.owned_rooms,
             "favorites": self.favorites,
-            "has_verified_name": self.has_verified_name
+            "has_verified_name": self.has_verified_name,
+            "route": self.route.value
         }

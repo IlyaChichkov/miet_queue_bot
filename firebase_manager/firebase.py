@@ -67,17 +67,6 @@ async def db_create_room(user_id, room_name):
         return None, str(e)
 
 
-async def get_user_room_key(user_id):
-    """
-    Возвращает room_key
-    """
-    user: User = await get_user(user_id)
-    if user.room != '':
-        return user.room
-    else:
-        return None
-
-
 async def get_global_role_users_dict():
     global_roles_ref = db.reference('/special_roles')
     global_roles = global_roles_ref.get()
@@ -140,7 +129,7 @@ async def admin_join_room(user_id, room_code):
     await room.add_user(user_id, UserRoles.Admin)
     await set_user_room(user_id, room.room_id)
     await set_user_role(user_id, 'admins')
-    await user_joined_event.fire(room, user_id, 'admin')
+    await user_joined_event.fire(room, user_id)
     result = {'room': room}
     return result
 
@@ -151,11 +140,11 @@ async def user_join_room(user_id, room_code, user_role):
         'moderator': 'moderators'
     }
     try:
-        room_key = await get_user_room_key(user_id)
-        if room_key is not None:
-            room_exits = await check_room_exist(room_key)
+        user: User = await get_user(user_id)
+        if user.room is not None and user.room != '':
+            room_exits = await check_room_exist(user.room)
             if not room_exits:
-                logging.warning(f"USER_{user_id} was connected to not existing room with id={room_key}!")
+                logging.warning(f"USER_{user_id} was connected to not existing room with id={user.room}!")
                 await set_user_room(user_id, '')
             else:
                 return {'error': "Connected to other room", 'error_text': 'Вы уже подключены к другой комнате' }
@@ -172,14 +161,13 @@ async def user_join_room(user_id, room_code, user_role):
                 await room.add_user(user_id, UserRoles.Moderator)
 
             room_key = room.room_id
-            user: User = await get_user(user_id)
             await user.set_room(room_key)
             await user.update_role(role_to_room_list[user_role])
-            await user_joined_event.fire(room, user_id, user_role)
 
             journal: RoomJournal = await get_room_journal(room.room_id)
             await journal.add_event(RoomEvent.UserJoin(user_id))
             logging.info(f'USER_{user_id} join ROOM_{room_key} ({room.name})')
+            await user_joined_event.fire(room_key, user_id)
             return { 'room': room }
 
         return { 'error': 'Room not found', 'error_text': 'Комната не найдена.' }
@@ -238,12 +226,14 @@ async def enter_queue(user_id):
 
 
 async def is_autoqueue_enabled(user_id):
-    room = await get_room(await get_user_room_key(user_id))
+    user: User = await get_user(user_id)
+    room = await get_room(user.room)
     return room.is_queue_on_join
 
 
 async def is_user_in_queue(user_id):
-    room = await get_room(await get_user_room_key(user_id))
+    user: User = await get_user(user_id)
+    room = await get_room(user.room)
     if room and user_id in room.queue:
         return {'result': True, 'place': room.queue.index(user_id), 'len': len(room.queue)}
     return {'result': False, 'place': None, 'len': None}
@@ -270,8 +260,8 @@ async def get_room_queue_enabled(room_key) -> bool:
 
 
 async def get_user_role(user_id):
-    room_key = await get_user_room_key(user_id)
-    room = await get_room(room_key)
+    user: User = await get_user(user_id)
+    room = await get_room(user.room)
     user_role = room.get_user_group(user_id)
     logging.info(f'USER_{user_id}: Get user role: {user_role}')
     return user_role
@@ -295,16 +285,16 @@ async def generate_random_queue(room, queue_list):
 
 
 async def switch_room_queue_enabled(user_id):
-    room_key = await get_user_room_key(user_id)
-    room = await get_room(room_key)
+    user: User = await get_user(user_id)
+    room = await get_room(user.room)
     await room.switch_queue_enabled()
     new_val: bool = room.is_queue_enabled
     queue_state = {
         True: "enabled",
         False: "disabled"
     }
-    logging.info(f'Queue in room {room_key} is {queue_state[new_val]}')
-    await queue_enable_state_event.fire(room_key, new_val)
+    logging.info(f'Queue in room {user.room} is {queue_state[new_val]}')
+    await queue_enable_state_event.fire(user.room, new_val)
     return new_val
 
 
