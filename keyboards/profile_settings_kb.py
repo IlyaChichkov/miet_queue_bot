@@ -25,6 +25,10 @@ async def get_settings_kb(user_id):
             types.InlineKeyboardButton(
                 text="Мои заметки",
                 callback_data=f'show#my_notes'
+            ),
+            types.InlineKeyboardButton(
+                text="История",
+                callback_data=f'show#assign_history'
             )
         )
 

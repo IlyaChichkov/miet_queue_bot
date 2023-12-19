@@ -3,7 +3,7 @@ import base64
 import gzip
 import json
 
-from models.room_event import RoomEvent
+from models.room_event import RoomEvent, RoomEventType
 
 
 class RoomJournal:
@@ -43,3 +43,6 @@ class RoomJournal:
         json_data = json.dumps(events_data, indent=4)
         print(json_data)
         return json_data
+
+    def get_events_by_type(self, event_type: RoomEventType) -> list[RoomEvent]:
+        return [ev for ev in self.events if ev.event_type == event_type]

@@ -34,10 +34,11 @@ async def load_from_database(room_id, journal):
     journal.decompress_journal(compressed_data)
 
 
-update_max_cooldown = 10
-update_cooldown = update_max_cooldown
+update_cooldown = 1
 async def update_room_journal(room_id):
-    global update_cooldown, update_max_cooldown
+    from firebase_manager.firebase import get_db_data
+    update_max_cooldown: int = int(await get_db_data("journal_update_cooldown"))
+    global update_cooldown
     if update_cooldown < 1:
 
         journal = await get_room_journal(room_id)
