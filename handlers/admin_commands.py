@@ -102,8 +102,11 @@ async def update_server_cache(callback: types.CallbackQuery, state: FSMContext):
     for file_name, _ in last_5_files:
         try:
             file_path = f'./{destination_folder}/{file_name}'
+            file_size = os.path.getsize(file_path)
+
+            if file_size == 0:
+                continue
             file = types.FSInputFile(file_path)
-            #await send_document(user_id, file, '')
             media.add_document(file)
 
         except Exception as ex:
