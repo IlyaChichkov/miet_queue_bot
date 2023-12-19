@@ -5,8 +5,11 @@ from firebase_admin import credentials
 from firebase_admin import db
 import logging
 
+from models.room_event import RoomEvent
+from models.room_journal import RoomJournal
 from events.queue_events import queue_enable_state_event, user_joined_event, username_changed_event, update_queue_event
 from models.room import Room
+from models.server_jornals import get_room_journal
 from models.server_rooms import get_room, create_room, get_room_where_user, get_room_by_join_code, remove_room
 from models.server_users import get_user
 from models.user import User
@@ -55,12 +58,13 @@ async def db_create_room(user_id, room_name):
         user = await get_user(user_id)
         await user.set_room(room.room_id)
         await user.update_role('admins')
-
-        return { 'room': room.to_dict() }
+        journal: RoomJournal = await get_room_journal(room.room_id)
+        await journal.add_event(RoomEvent.CreateRoom(user_id))
+        return room, None
     except Exception as e:
         error_message = f"Error creating room. Arguments: {user_id}, {room_name}. Error: {str(e)}"
         logging.error(error_message)  # Log the error
-        return { 'error': str(e), 'error_text': str(e) }
+        return None, str(e)
 
 
 async def get_user_room_key(user_id):
@@ -92,6 +96,9 @@ async def leave_room(user_id):
     if room is not None:
         logging.info(f'USER_{user_id} leave ROOM_{user.room} ({room.name})')
         await room.remove_user(user_id)
+
+        journal: RoomJournal = await get_room_journal(room.room_id)
+        await journal.add_event(RoomEvent.UserLeft(user_id))
         return True
     else:
         return False
@@ -113,9 +120,12 @@ async def set_user_room(user_id, room_key):
 
 async def delete_room(user_id):
     user: User = await get_user(user_id)
-    room_key = user.room
-    await remove_room(room_key, user_id)
-    return True
+    room_id = user.room
+    result = await remove_room(room_id, user_id)
+    if result:
+        journal: RoomJournal = await get_room_journal(room_id)
+        await journal.add_event(RoomEvent.DeleteRoom(user_id))
+    return result
 
 
 async def get_user_owned_rooms_list(user_id):
@@ -166,6 +176,9 @@ async def user_join_room(user_id, room_code, user_role):
             await user.set_room(room_key)
             await user.update_role(role_to_room_list[user_role])
             await user_joined_event.fire(room, user_id, user_role)
+
+            journal: RoomJournal = await get_room_journal(room.room_id)
+            await journal.add_event(RoomEvent.UserJoin(user_id))
             logging.info(f'USER_{user_id} join ROOM_{room_key} ({room.name})')
             return { 'room': room }
 

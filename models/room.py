@@ -36,7 +36,6 @@ class Room:
         self.study_notes: list[StudyNote] = []
 
         # Cache only
-        self.journal: RoomJournal = None
 
         # Set values
         self.name = name

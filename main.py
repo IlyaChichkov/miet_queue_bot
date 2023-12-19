@@ -9,6 +9,7 @@ from models.server_admin import load_cache
 ''' DO NOT REMOVE | EVENTS '''
 import models.server_users
 import models.server_rooms
+import models.server_jornals
 import events.room_delete_handler
 import events.user_join_handler
 import events.user_left_handler

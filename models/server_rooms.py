@@ -117,6 +117,8 @@ async def remove_room(room_id, user_id):
         await user.remove_owned_room(room_id)
         await room_to_remove.delete()
         del server_rooms_dict[room_id]
+        return True
+    return False
 
 
 async def get_room_by_join_code(join_code, user_role):
