@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
@@ -99,11 +101,11 @@ async def room_exit_state_call(callback: types.CallbackQuery, state: FSMContext)
 @router.callback_query(F.data == "action#enter_queue")
 async def room_queue_push(callback: types.CallbackQuery, state: FSMContext):
     message_text = await get_join_queue_form(callback.from_user.id)
-    print(message_text)
-    # TODO: Got error here
-    # aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: query is too old and response timeout expired or query ID is invalid
-    if 'place' in message_text:
-        await callback.answer(f"Вы на {message_text['place']} месте в очереди")
+    try:
+        if 'place' in message_text:
+            await callback.answer(f"Вы на {message_text['place']} месте в очереди")
+    except Exception as ex:
+        logging.error(ex)
     await welcome_room_state(callback)
 
 
