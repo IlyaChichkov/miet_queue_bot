@@ -18,6 +18,8 @@ router = Router()
 
 main_message_cache = {}
 queue_message_cache = {}
+updated_rooms = set()
+room_timers = {}
 
 
 @router.callback_query(F.data == 'show#room_menu')
@@ -49,7 +51,25 @@ async def welcome_room_state(message: types.Message):
     await welcome_room(message.from_user.id)
 
 
-async def update_handler(room_id, user_id):
+async def debounce_update_handler(room_id):
+    global updated_rooms
+
+    if room_id not in updated_rooms:
+        updated_rooms.add(room_id)
+
+        async def wait_and_call_update(room_id):
+            from firebase_manager.firebase import get_db_data
+            delay: float = float(await get_db_data("update_debounce_delay"))
+            await asyncio.sleep(delay)
+            await update_handler(room_id)
+            updated_rooms.discard(room_id)
+
+        room_timers[room_id] = asyncio.create_task(wait_and_call_update(room_id))
+    else:
+        print("SAVED TIME!")
+
+
+async def update_handler(room_id):
     logging.info('-- UPDATE OTHER USERS MENU --')
     room: Room = await get_room(room_id)
     for room_user in room.get_users_list():
@@ -61,22 +81,22 @@ async def update_handler(room_id, user_id):
 
 async def queue_enable_state_event_handler(room_id, user_id):
     logging.info('-- queue_enable_state_event --')
-    await asyncio.create_task(update_handler(room_id, user_id))
+    await asyncio.create_task(debounce_update_handler(room_id))
 
 
 async def user_leave_room_event_handler(room_id, user_id):
     logging.info('-- user_leave_room_event_handler --')
-    await asyncio.create_task(update_handler(room_id, user_id))
+    await asyncio.create_task(debounce_update_handler(room_id))
 
 
 async def user_joined_event_handler(room_id, user_id):
     logging.info('-- user_joined_event_handler --')
-    await asyncio.create_task(update_handler(room_id, user_id))
+    await asyncio.create_task(debounce_update_handler(room_id))
 
 
 async def update_queue_event_handler(room_id, user_id):
     logging.info('-- update_queue_event --')
-    await asyncio.create_task(update_handler(room_id, user_id))
+    await asyncio.create_task(debounce_update_handler(room_id))
 
 
 queue_enable_state_event.add_handler(queue_enable_state_event_handler)
