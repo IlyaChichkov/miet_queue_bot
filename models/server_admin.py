@@ -116,6 +116,7 @@ async def delete_cache():
 
 
 async def load_cache():
-    print('Load cache')
+    logging.info('Loading database data to server app cache...')
     await __load_rooms()
     await __load_users()
+    logging.info('Database data loaded.')
