@@ -63,6 +63,10 @@ async def start_command(message: types.Message, state: FSMContext):
     Подключение к комнате, если пользователь находится в ней,
     Отображение меню
     '''
+
+    username = message.from_user.username
+    if username is None or username == '':
+        return
     user: User = await get_user(message.from_user.id, True)
     room: Room = await get_room(user.room)
     if room:
