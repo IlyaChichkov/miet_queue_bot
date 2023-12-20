@@ -24,6 +24,7 @@ async def main():
     logging.info('------------------ Start bot pooling ------------------')
     await import_routers()
     await load_cache()
+    print('Starting bot...')
     await dp.start_polling(bot)
 
 
