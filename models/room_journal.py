@@ -20,14 +20,8 @@ class RoomJournal:
         if len(self.events) < 1:
             return None
         room_events_json = json.dumps([event.to_dict() for event in self.events])
-        print(room_events_json)
         compressed_data = gzip.compress(room_events_json.encode())
         encoded_data = base64.b64encode(compressed_data).decode('utf-8')
-
-        size_in_bytes = len(encoded_data.encode('utf-8'))
-        size_in_kb = size_in_bytes / 1024
-
-        print(f"Размер сохраненного журнала: {size_in_kb} КБ ({size_in_bytes} Б)")
         return encoded_data
 
     def decompress_journal(self, encoded_data):
@@ -41,7 +35,6 @@ class RoomJournal:
     def to_dict(self):
         events_data = [ev.to_dict() for ev in self.events]
         json_data = json.dumps(events_data, indent=4)
-        print(json_data)
         return json_data
 
     def get_events_by_type(self, event_type: RoomEventType) -> list[RoomEvent]:
