@@ -25,12 +25,14 @@ class RoomJournal:
         return encoded_data
 
     def decompress_journal(self, encoded_data):
-        decoded_data = base64.b64decode(encoded_data)
-        decompressed_data = gzip.decompress(decoded_data)
-        events = [RoomEvent.from_dict(ev_dict) for ev_dict in json.loads(decompressed_data)]
-        if events is not None and len(events) > 0:
-            self.events = events
-        return events
+        if encoded_data is not None:
+            decoded_data = base64.b64decode(encoded_data)
+            decompressed_data = gzip.decompress(decoded_data)
+            events = [RoomEvent.from_dict(ev_dict) for ev_dict in json.loads(decompressed_data)]
+            if events is not None and len(events) > 0:
+                self.events = events
+            return events
+        return None
 
     def to_dict(self):
         events_data = [ev.to_dict() for ev in self.events]

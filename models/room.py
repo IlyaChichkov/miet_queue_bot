@@ -336,10 +336,12 @@ class Room:
         return encoded_data
 
     def decompress_notes(self, encoded_data):
-        decoded_data = base64.b64decode(encoded_data)
-        decompressed_data = gzip.decompress(decoded_data)
-        study_notes = [StudyNote.from_dict(note_dict) for note_dict in json.loads(decompressed_data)]
-        return study_notes
+        if encoded_data is not None:
+            decoded_data = base64.b64decode(encoded_data)
+            decompressed_data = gzip.decompress(decoded_data)
+            study_notes = [StudyNote.from_dict(note_dict) for note_dict in json.loads(decompressed_data)]
+            return study_notes
+        return None
 
 
     def to_dict(self):

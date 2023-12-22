@@ -189,9 +189,8 @@ async def assigned_note_added(message: types.Message, state: FSMContext):
     pupil_name = await get_user_name(user.assigned_user_id)
     note = StudyNote(room.room_id, room.name, user.user_id, teacher_name, pupil_name, message.text)
     room.study_notes.append(note)
-    logging.info(f'Note was added by {user.user_id} to {user.assigned_user_id}\nNote: {message.text}')
+    logging.info(f'Note was added by {user.user_id} to {user.assigned_user_id}')
     await send_message(message.from_user.id, f"Заметка добавлена!")
-    # Выход на экран очереди
 
     journal: RoomJournal = await get_room_journal(room.room_id)
     await journal.add_event(RoomEvent.NoteCreated(note.id))

@@ -65,8 +65,6 @@ async def debounce_update_handler(room_id):
             updated_rooms.discard(room_id)
 
         room_timers[room_id] = asyncio.create_task(wait_and_call_update(room_id))
-    else:
-        print("SAVED TIME!")
 
 
 async def update_handler(room_id):
