@@ -39,8 +39,12 @@ async def get_room(room_id) -> Room:
 
 
 async def try_get_room_from_db(room_id) -> Room:
-    rooms_ref = db.reference(f'/rooms/{room_id}')
-    return load_room_from_json(room_id, rooms_ref.get())
+    try:
+        rooms_ref = db.reference(f'/rooms/{room_id}')
+        return load_room_from_json(room_id, rooms_ref.get())
+    except Exception as ex:
+        logging.warning(f'Error geting ROOM_{room_id} from database: {ex}')
+    return None
 
 
 def load_room_from_json(room_id, db_room) -> Room:
