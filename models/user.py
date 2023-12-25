@@ -40,12 +40,16 @@ class User:
         self.route: UserRoutes = new_route
 
     async def check_global_role(self):
-        global_roles_ref = db.reference('/special_roles')
-        global_roles = global_roles_ref.get()
-        if str(self.user_id) in list(global_roles.keys()):
-            self.global_role = global_roles[str(self.user_id)]
-        else:
+        try:
+            global_roles_ref = db.reference('/special_roles')
+            global_roles = global_roles_ref.get()
+            if str(self.user_id) in list(global_roles.keys()):
+                self.global_role = global_roles[str(self.user_id)]
+            else:
+                self.global_role = None
+        except Exception as ex:
             self.global_role = None
+            logging.error(ex)
 
     async def set_last_message(self, last_message, message_type):
         self.last_message = last_message
