@@ -229,8 +229,11 @@ class User:
         if self.user_id == '':
             logging.error('User in cache has empty ID!')
             return
-        rooms_ref = db.reference('/users')
-        rooms_ref.child(self.db_key).set(self.to_dict())
+        try:
+            rooms_ref = db.reference('/users')
+            rooms_ref.child(self.db_key).set(self.to_dict())
+        except Exception as ex:
+            logging.error(ex)
 
     def to_dict(self):
         return {
