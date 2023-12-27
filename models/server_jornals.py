@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from firebase_admin import db
 
@@ -29,8 +30,23 @@ async def create_room_journal(room_id):
 
 
 async def load_from_database(room_id, journal):
-    journals_ref = db.reference(f'/room_journals/{room_id}')
-    compressed_data = journals_ref.get()
+    file_name = f"./room_journals/{room_id}.txt"
+
+    with open(file_name, 'r', encoding='utf-8') as file:
+        compressed_data = file.read()
+
+    #journals_ref = db.reference(f'/room_journals/{room_id}')
+    #compressed_data = journals_ref.get()
+
+    # Размер строки в байтах
+    size_in_bytes = sys.getsizeof(compressed_data)
+
+    # Размер строки в килобайтах
+    size_in_kb = size_in_bytes / 1024
+
+    print(f"Загрузка журнала\nРазмер строки в байтах: {size_in_bytes} байт")
+    print(f"Размер строки в килобайтах: {size_in_kb:.2f} КБ")
+
     journal.decompress_journal(compressed_data)
 
 
@@ -45,8 +61,23 @@ async def update_room_journal(room_id):
         save_data = journal.compress_journal()
 
         try:
-            rooms_ref = db.reference('/room_journals')
-            rooms_ref.child(room_id).set(save_data)
+
+            # Размер строки в байтах
+            size_in_bytes = sys.getsizeof(save_data)
+
+            # Размер строки в килобайтах
+            size_in_kb = size_in_bytes / 1024
+
+            print(f"Загрузка журнала\nРазмер строки в байтах: {size_in_bytes} байт")
+            print(f"Размер строки в килобайтах: {size_in_kb:.2f} КБ")
+
+            file_name = f"./room_journals/{room_id}.txt"
+
+            with open(file_name, 'w', encoding='utf-8') as file:
+                file.write(save_data)
+
+            # rooms_ref = db.reference('/room_journals')
+            # rooms_ref.child(room_id).set(save_data)
         except Exception as ex:
             logging.error(f"Got journal update error! {ex}")
             return
