@@ -95,13 +95,13 @@ async def get_welcome_message(user: User, room: Room):
     }
     queue_status_msg = f"Очередь: {queue_status_form[queue_status]}"
     role_to_welcome_text = {
-        UserRoles.Admin:  f"📖 Комната «<b>{room_name}</b>»\n{queue_status_msg}\n{room_users_mesg}\n"
+        UserRoles.Admin:  f"🎄 Комната «<b>{room_name}</b>»\n{queue_status_msg}\n{room_users_mesg}\n"
                           f"<b>Код для присоединения:</b>\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
                           f"Студентов: <code>{join_code}</code>",
-        UserRoles.Moderator:  f"📖 Комната «<b>{room_name}</b>»\n{queue_status_msg}\n{room_users_mesg}\n"
+        UserRoles.Moderator:  f"🎄 Комната «<b>{room_name}</b>»\n{queue_status_msg}\n{room_users_mesg}\n"
                               f"<b>Код для присоединения:</b>\nМодераторов: <tg-spoiler><code>{moderator_code}</code></tg-spoiler>\n"
                               f"Студентов: <code>{join_code}</code>",
-        UserRoles.User:  f'📖 Комната «<b>{room_name}</b>»\n{queue_status_msg}\n{room_users_mesg}\n{place_message}'
+        UserRoles.User:  f'🎄 Комната «<b>{room_name}</b>»\n{queue_status_msg}\n{room_users_mesg}\n{place_message}'
     }
     mesg_text = role_to_welcome_text.get(role, 'None')
     queue_list = ''
